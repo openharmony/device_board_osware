@@ -1,0 +1,814 @@
+commit 4ed3a676c54a61ca6e9dffadc36e89937306d7ac
+Author: zhaoxc0502 <zhaoxc0502@thundersoft.com>
+Date:   Wed Jun 1 12:00:16 2022 +0800
+
+    modify kernel mm for imx8m mini
+    
+    Change-Id: I69127927a5e3d5b9e4990bbf487e6aec203d6b24
+
+diff --git a/mm/Kconfig b/mm/Kconfig
+index c35f9f8a0..df9bf9f4a 100644
+--- a/mm/Kconfig
++++ b/mm/Kconfig
+@@ -90,18 +90,6 @@ config HYPERHOLD_ZSWAPD
+ 	  and the refault of anonymous pages is high, the content of
+ 	  zram will exchanged to eswap by a certain percentage.
+ 
+-config PAGE_TRACING
+-	bool "Enable Page Tracing"
+-	default n
+-	help
+-	  This option enables page tracing.
+-
+-config RECLAIM_ACCT
+-	bool "Memory reclaim delay accounting"
+-	default n
+-	help
+-	  Memory reclaim delay accounting. Never use it as a kernel module.
+-
+ config DISCONTIGMEM
+ 	def_bool y
+ 	depends on (!SELECT_MEMORY_MODEL && ARCH_DISCONTIGMEM_ENABLE) || DISCONTIGMEM_MANUAL
+@@ -924,28 +912,5 @@ config ANON_VMA_NAME
+ 	  Assigning a name to anonymous virtual memory area might prevent that
+ 	  area from being merged with adjacent virtual memory areas due to the
+ 	  difference in their name.
+-#
+-# For lmkd to trigger in-kernel lowmem info
+-#
+-config LOWMEM
+-        bool "Low Memory Killer"
+-	default n
+-	help
+-	  Enables lowmem killer parameter tuning
+-
+-config LMKD_DBG
+-	bool "Low Memory Killer Debug"
+-	default n
+-	help
+-	  print processes info when lmk happen per several seconds
+-#
+-# Show the process ashmem for debug
+-#
+-config MEMTRACE_ASHMEM
+-	bool "Ashmem Process Info Show"
+-	depends on ASHMEM
+-	default n
+-	help
+-	  Enable the Ashmem Process Info Show
+ 
+ endmenu
+diff --git a/mm/Makefile b/mm/Makefile
+index 4c0ca82c4..56abb804c 100644
+--- a/mm/Makefile
++++ b/mm/Makefile
+@@ -66,9 +66,6 @@ ifdef CONFIG_MMU
+ 	obj-$(CONFIG_ADVISE_SYSCALLS)	+= madvise.o
+ endif
+ 
+-obj-$(CONFIG_MEMTRACE_ASHMEM) += memtrace_ashmem.o
+-obj-$(CONFIG_LMKD_DBG) += lmkd_dbg_trigger.o
+-obj-$(CONFIG_LOWMEM) += lowmem_dbg.o
+ obj-$(CONFIG_SWAP)	+= page_io.o swap_state.o swapfile.o swap_slots.o
+ obj-$(CONFIG_FRONTSWAP)	+= frontswap.o
+ obj-$(CONFIG_ZSWAP)	+= zswap.o
+@@ -126,4 +123,3 @@ obj-$(CONFIG_PAGE_REPORTING) += page_reporting.o
+ obj-$(CONFIG_HYPERHOLD_FILE_LRU) += memcg_reclaim.o
+ obj-$(CONFIG_HYPERHOLD_MEMCG) += memcg_control.o
+ obj-$(CONFIG_HYPERHOLD_ZSWAPD) += zswapd.o zswapd_control.o
+-obj-$(CONFIG_RECLAIM_ACCT) += reclaim_acct.o reclaimacct_show.o
+diff --git a/mm/debug.c b/mm/debug.c
+index e97a23eba..ccca576b2 100644
+--- a/mm/debug.c
++++ b/mm/debug.c
+@@ -29,10 +29,6 @@ const char *migrate_reason_names[MR_TYPES] = {
+ 
+ const struct trace_print_flags pageflag_names[] = {
+ 	__def_pageflag_names,
+-#ifdef CONFIG_PAGE_TRACING
+-	{1UL << PG_skb,		"skb"},
+-	{1UL << PG_zspage,	"zspage"},
+-#endif
+ 	{0, NULL}
+ };
+ 
+diff --git a/mm/internal.h b/mm/internal.h
+index 708a18c63..ccdee4a03 100644
+--- a/mm/internal.h
++++ b/mm/internal.h
+@@ -13,8 +13,6 @@
+ #include <linux/tracepoint-defs.h>
+ #include <linux/swap.h>
+ #include <linux/rmap.h>
+-#include <linux/types.h>
+-#include <linux/reclaim_acct.h>
+ 
+ /*
+  * The set of flags that only affect watermark checking and reclaim
+@@ -773,26 +771,4 @@ struct migration_target_control {
+ 	gfp_t gfp_mask;
+ };
+ 
+-#define DELAY_LV0 5000000 /* 5ms */
+-#define DELAY_LV1 10000000 /* 10ms */
+-#define DELAY_LV2 50000000 /* 50ms */
+-#define DELAY_LV3 100000000 /* 100ms */
+-#define DELAY_LV4 2000000000 /* 2000ms */
+-#define DELAY_LV5 50000000000 /* 50000ms */
+-#define NR_DELAY_LV 6
+-
+-struct reclaim_acct {
+-	u64 start[NR_RA_STUBS];
+-	u64 delay[NR_RA_STUBS];
+-	u64 count[NR_RA_STUBS];
+-	u64 freed[NR_RA_STUBS];
+-	unsigned int reclaim_type;
+-};
+-
+-bool reclaimacct_initialize_show_data(void);
+-void reclaimacct_destroy_show_data(void);
+-
+-void reclaimacct_collect_data(void);
+-void reclaimacct_collect_reclaim_efficiency(void);
+-
+ #endif	/* __MM_INTERNAL_H */
+diff --git a/mm/ioremap.c b/mm/ioremap.c
+index 5fa1ab41d..d63c4ba06 100644
+--- a/mm/ioremap.c
++++ b/mm/ioremap.c
+@@ -248,6 +248,7 @@ int ioremap_page_range(unsigned long addr,
+ 
+ 	return err;
+ }
++EXPORT_SYMBOL_GPL(ioremap_page_range);
+ 
+ #ifdef CONFIG_GENERIC_IOREMAP
+ void __iomem *ioremap_prot(phys_addr_t addr, size_t size, unsigned long prot)
+diff --git a/mm/madvise.c b/mm/madvise.c
+index b23f6155a..23b48a004 100644
+--- a/mm/madvise.c
++++ b/mm/madvise.c
+@@ -18,7 +18,6 @@
+ #include <linux/fadvise.h>
+ #include <linux/sched.h>
+ #include <linux/sched/mm.h>
+-#include <linux/mm_inline.h>
+ #include <linux/string.h>
+ #include <linux/uio.h>
+ #include <linux/ksm.h>
+@@ -63,7 +62,7 @@ static int madvise_need_mmap_write(int behavior)
+ }
+ 
+ #ifdef CONFIG_ANON_VMA_NAME
+-struct anon_vma_name *anon_vma_name_alloc(const char *name)
++static struct anon_vma_name *anon_vma_name_alloc(const char *name)
+ {
+ 	struct anon_vma_name *anon_name;
+ 	size_t count;
+@@ -79,48 +78,78 @@ struct anon_vma_name *anon_vma_name_alloc(const char *name)
+ 	return anon_name;
+ }
+ 
+-void anon_vma_name_free(struct kref *kref)
++static void vma_anon_name_free(struct kref *kref)
+ {
+ 	struct anon_vma_name *anon_name =
+ 			container_of(kref, struct anon_vma_name, kref);
+ 	kfree(anon_name);
+ }
+ 
+-struct anon_vma_name *anon_vma_name(struct vm_area_struct *vma)
++static inline bool has_vma_anon_name(struct vm_area_struct *vma)
+ {
+-	mmap_assert_locked(vma->vm_mm);
++	return !vma->vm_file && vma->anon_name;
++}
+ 
+-	if (vma->vm_file)
++const char *vma_anon_name(struct vm_area_struct *vma)
++{
++	if (!has_vma_anon_name(vma))
+ 		return NULL;
+ 
+-	return vma->anon_name;
++	mmap_assert_locked(vma->vm_mm);
++
++	return vma->anon_name->name;
++}
++
++void dup_vma_anon_name(struct vm_area_struct *orig_vma,
++		       struct vm_area_struct *new_vma)
++{
++	if (!has_vma_anon_name(orig_vma))
++		return;
++
++	kref_get(&orig_vma->anon_name->kref);
++	new_vma->anon_name = orig_vma->anon_name;
++}
++
++void free_vma_anon_name(struct vm_area_struct *vma)
++{
++	struct anon_vma_name *anon_name;
++
++	if (!has_vma_anon_name(vma))
++		return;
++
++	anon_name = vma->anon_name;
++	vma->anon_name = NULL;
++	kref_put(&anon_name->kref, vma_anon_name_free);
+ }
+ 
+ /* mmap_lock should be write-locked */
+-static int replace_anon_vma_name(struct vm_area_struct *vma,
+-				 struct anon_vma_name *anon_name)
++static int replace_vma_anon_name(struct vm_area_struct *vma, const char *name)
+ {
+-	struct anon_vma_name *orig_name = anon_vma_name(vma);
++	const char *anon_name;
+ 
+-	if (!anon_name) {
+-		vma->anon_name = NULL;
+-		anon_vma_name_put(orig_name);
++	if (!name) {
++		free_vma_anon_name(vma);
+ 		return 0;
+ 	}
+ 
+-	if (anon_vma_name_eq(orig_name, anon_name))
+-		return 0;
++	anon_name = vma_anon_name(vma);
++	if (anon_name) {
++		/* Same name, nothing to do here */
++		if (!strcmp(name, anon_name))
++			return 0;
+ 
+-	vma->anon_name = anon_vma_name_reuse(anon_name);
+-	anon_vma_name_put(orig_name);
++		free_vma_anon_name(vma);
++	}
++	vma->anon_name = anon_vma_name_alloc(name);
++	if (!vma->anon_name)
++		return -ENOMEM;
+ 
+ 	return 0;
+ }
+ #else /* CONFIG_ANON_VMA_NAME */
+-static int replace_anon_vma_name(struct vm_area_struct *vma,
+-				 struct anon_vma_name *anon_name)
++static int replace_vma_anon_name(struct vm_area_struct *vma, const char *name)
+ {
+-	if (anon_name)
++	if (name)
+ 		return -EINVAL;
+ 
+ 	return 0;
+@@ -129,19 +158,17 @@ static int replace_anon_vma_name(struct vm_area_struct *vma,
+ /*
+  * Update the vm_flags on region of a vma, splitting it or merging it as
+  * necessary.  Must be called with mmap_sem held for writing;
+- * Caller should ensure anon_name stability by raising its refcount even when
+- * anon_name belongs to a valid vma because this function might free that vma.
+  */
+ static int madvise_update_vma(struct vm_area_struct *vma,
+ 			      struct vm_area_struct **prev, unsigned long start,
+ 			      unsigned long end, unsigned long new_flags,
+-			      struct anon_vma_name *anon_name)
++			      const char *name)
+ {
+ 	struct mm_struct *mm = vma->vm_mm;
+ 	int error;
+ 	pgoff_t pgoff;
+ 
+-	if (new_flags == vma->vm_flags && anon_vma_name_eq(anon_vma_name(vma), anon_name)) {
++	if (new_flags == vma->vm_flags && is_same_vma_anon_name(vma, name)) {
+ 		*prev = vma;
+ 		return 0;
+ 	}
+@@ -149,7 +176,7 @@ static int madvise_update_vma(struct vm_area_struct *vma,
+ 	pgoff = vma->vm_pgoff + ((start - vma->vm_start) >> PAGE_SHIFT);
+ 	*prev = vma_merge(mm, *prev, start, end, new_flags, vma->anon_vma,
+ 			  vma->vm_file, pgoff, vma_policy(vma),
+-			  vma->vm_userfaultfd_ctx, anon_name);
++			  vma->vm_userfaultfd_ctx, name);
+ 	if (*prev) {
+ 		vma = *prev;
+ 		goto success;
+@@ -179,7 +206,7 @@ static int madvise_update_vma(struct vm_area_struct *vma,
+ 	 */
+ 	vma->vm_flags = new_flags;
+ 	if (!vma->vm_file) {
+-		error = replace_anon_vma_name(vma, anon_name);
++		error = replace_vma_anon_name(vma, name);
+ 		if (error)
+ 			return error;
+ 	}
+@@ -887,7 +914,6 @@ static int madvise_vma_behavior(struct vm_area_struct *vma,
+ 				unsigned long behavior)
+ {
+ 	int error;
+-	struct anon_vma_name *anon_name;
+ 	unsigned long new_flags = vma->vm_flags;
+ 
+ 	switch (behavior) {
+@@ -950,11 +976,8 @@ static int madvise_vma_behavior(struct vm_area_struct *vma,
+ 		break;
+ 	}
+ 
+-	anon_name = anon_vma_name(vma);
+-	anon_vma_name_get(anon_name);
+ 	error = madvise_update_vma(vma, prev, start, end, new_flags,
+-				   anon_name);
+-	anon_vma_name_put(anon_name);
++				   vma_anon_name(vma));
+ 
+ out:
+ 	/*
+@@ -1140,7 +1163,7 @@ int madvise_walk_vmas(struct mm_struct *mm, unsigned long start,
+ static int madvise_vma_anon_name(struct vm_area_struct *vma,
+ 				 struct vm_area_struct **prev,
+ 				 unsigned long start, unsigned long end,
+-				 unsigned long anon_name)
++				 unsigned long name)
+ {
+ 	int error;
+ 
+@@ -1149,7 +1172,7 @@ static int madvise_vma_anon_name(struct vm_area_struct *vma,
+ 		return -EBADF;
+ 
+ 	error = madvise_update_vma(vma, prev, start, end, vma->vm_flags,
+-				   (struct anon_vma_name *)anon_name);
++				   (const char *)name);
+ 
+ 	/*
+ 	 * madvise() returns EAGAIN if kernel resources, such as
+@@ -1161,7 +1184,7 @@ static int madvise_vma_anon_name(struct vm_area_struct *vma,
+ }
+ 
+ int madvise_set_anon_name(struct mm_struct *mm, unsigned long start,
+-			  unsigned long len_in, struct anon_vma_name *anon_name)
++			  unsigned long len_in, const char *name)
+ {
+ 	unsigned long end;
+ 	unsigned long len;
+@@ -1181,7 +1204,7 @@ int madvise_set_anon_name(struct mm_struct *mm, unsigned long start,
+ 	if (end == start)
+ 		return 0;
+ 
+-	return madvise_walk_vmas(mm, start, end, (unsigned long)anon_name,
++	return madvise_walk_vmas(mm, start, end, (unsigned long)name,
+ 				 madvise_vma_anon_name);
+ }
+ #endif /* CONFIG_ANON_VMA_NAME */
+diff --git a/mm/memcg_control.c b/mm/memcg_control.c
+index 07fc597db..dd62304a9 100644
+--- a/mm/memcg_control.c
++++ b/mm/memcg_control.c
+@@ -218,9 +218,6 @@ unsigned long reclaim_all_anon_memcg(struct pglist_data *pgdat, struct mem_cgrou
+ 		.may_swap = 1,
+ 	};
+ 
+-#ifdef CONFIG_RECLAIM_ACCT
+-	reclaimacct_substage_start(RA_SHRINKANON);
+-#endif
+ 	count_vm_event(FREEZE_RECLAIME_COUNT);
+ 	move_pages_to_page_list(lruvec, LRU_INACTIVE_ANON, &page_list);
+ 
+@@ -233,10 +230,6 @@ unsigned long reclaim_all_anon_memcg(struct pglist_data *pgdat, struct mem_cgrou
+ 		putback_lru_page(page);
+ 	}
+ 
+-#ifdef CONFIG_RECLAIM_ACCT
+-	reclaimacct_substage_end(RA_SHRINKANON, nr_reclaimed, NULL);
+-#endif
+-
+ 	return nr_reclaimed;
+ }
+ 
+diff --git a/mm/memcg_reclaim.c b/mm/memcg_reclaim.c
+index 9f879a385..74c3d4dfa 100644
+--- a/mm/memcg_reclaim.c
++++ b/mm/memcg_reclaim.c
+@@ -217,9 +217,6 @@ void shrink_anon_memcg(struct pglist_data *pgdat,
+ 
+ static inline bool memcg_is_child_of(struct mem_cgroup *mcg, struct mem_cgroup *tmcg)
+ {
+-	if (tmcg == NULL)
+-		return true;
+-
+ 	while (!mem_cgroup_is_root(mcg)) {
+ 		if (mcg == tmcg)
+ 			break;
+diff --git a/mm/mempolicy.c b/mm/mempolicy.c
+index 46efcd21d..35e323d60 100644
+--- a/mm/mempolicy.c
++++ b/mm/mempolicy.c
+@@ -830,7 +830,7 @@ static int mbind_range(struct mm_struct *mm, unsigned long start,
+ 		prev = vma_merge(mm, prev, vmstart, vmend, vma->vm_flags,
+ 				 vma->anon_vma, vma->vm_file, pgoff,
+ 				 new_pol, vma->vm_userfaultfd_ctx,
+-				 anon_vma_name(vma));
++				 vma_anon_name(vma));
+ 		if (prev) {
+ 			vma = prev;
+ 			next = vma->vm_next;
+diff --git a/mm/mlock.c b/mm/mlock.c
+index 7080803ef..08b4f44ef 100644
+--- a/mm/mlock.c
++++ b/mm/mlock.c
+@@ -540,7 +540,7 @@ static int mlock_fixup(struct vm_area_struct *vma, struct vm_area_struct **prev,
+ 	pgoff = vma->vm_pgoff + ((start - vma->vm_start) >> PAGE_SHIFT);
+ 	*prev = vma_merge(mm, *prev, start, end, newflags, vma->anon_vma,
+ 			  vma->vm_file, pgoff, vma_policy(vma),
+-			  vma->vm_userfaultfd_ctx, anon_vma_name(vma));
++			  vma->vm_userfaultfd_ctx, vma_anon_name(vma));
+ 	if (*prev) {
+ 		vma = *prev;
+ 		goto success;
+diff --git a/mm/mmap.c b/mm/mmap.c
+index a5e0958ac..1f13b3069 100644
+--- a/mm/mmap.c
++++ b/mm/mmap.c
+@@ -13,7 +13,6 @@
+ #include <linux/slab.h>
+ #include <linux/backing-dev.h>
+ #include <linux/mm.h>
+-#include <linux/mm_inline.h>
+ #include <linux/vmacache.h>
+ #include <linux/shm.h>
+ #include <linux/mman.h>
+@@ -1030,7 +1029,7 @@ int __vma_adjust(struct vm_area_struct *vma, unsigned long start,
+ static inline int is_mergeable_vma(struct vm_area_struct *vma,
+ 				struct file *file, unsigned long vm_flags,
+ 				struct vm_userfaultfd_ctx vm_userfaultfd_ctx,
+-				struct anon_vma_name *anon_name)
++				const char *anon_name)
+ {
+ 	/*
+ 	 * VM_SOFTDIRTY should not prevent from VMA merging, if we
+@@ -1048,7 +1047,7 @@ static inline int is_mergeable_vma(struct vm_area_struct *vma,
+ 		return 0;
+ 	if (!is_mergeable_vm_userfaultfd_ctx(vma, vm_userfaultfd_ctx))
+ 		return 0;
+-	if (!anon_vma_name_eq(anon_vma_name(vma), anon_name))
++	if (!is_same_vma_anon_name(vma, anon_name))
+ 		return 0;
+ 	return 1;
+ }
+@@ -1083,7 +1082,7 @@ can_vma_merge_before(struct vm_area_struct *vma, unsigned long vm_flags,
+ 		     struct anon_vma *anon_vma, struct file *file,
+ 		     pgoff_t vm_pgoff,
+ 		     struct vm_userfaultfd_ctx vm_userfaultfd_ctx,
+-		     struct anon_vma_name *anon_name)
++		     const char *anon_name)
+ {
+ 	if (is_mergeable_vma(vma, file, vm_flags, vm_userfaultfd_ctx, anon_name) &&
+ 	    is_mergeable_anon_vma(anon_vma, vma->anon_vma, vma)) {
+@@ -1105,7 +1104,7 @@ can_vma_merge_after(struct vm_area_struct *vma, unsigned long vm_flags,
+ 		    struct anon_vma *anon_vma, struct file *file,
+ 		    pgoff_t vm_pgoff,
+ 		    struct vm_userfaultfd_ctx vm_userfaultfd_ctx,
+-		    struct anon_vma_name *anon_name)
++		    const char *anon_name)
+ {
+ 	if (is_mergeable_vma(vma, file, vm_flags, vm_userfaultfd_ctx, anon_name) &&
+ 	    is_mergeable_anon_vma(anon_vma, vma->anon_vma, vma)) {
+@@ -1166,7 +1165,7 @@ struct vm_area_struct *vma_merge(struct mm_struct *mm,
+ 			struct anon_vma *anon_vma, struct file *file,
+ 			pgoff_t pgoff, struct mempolicy *policy,
+ 			struct vm_userfaultfd_ctx vm_userfaultfd_ctx,
+-			struct anon_vma_name *anon_name)
++			const char *anon_name)
+ {
+ 	pgoff_t pglen = (end - addr) >> PAGE_SHIFT;
+ 	struct vm_area_struct *area, *next;
+@@ -3306,7 +3305,7 @@ struct vm_area_struct *copy_vma(struct vm_area_struct **vmap,
+ 		return NULL;	/* should never get here */
+ 	new_vma = vma_merge(mm, prev, addr, addr + len, vma->vm_flags,
+ 			    vma->anon_vma, vma->vm_file, pgoff, vma_policy(vma),
+-			    vma->vm_userfaultfd_ctx, anon_vma_name(vma));
++			    vma->vm_userfaultfd_ctx, vma_anon_name(vma));
+ 	if (new_vma) {
+ 		/*
+ 		 * Source vma may have been merged into new_vma
+diff --git a/mm/mprotect.c b/mm/mprotect.c
+index 53b6b1b8f..8f7dda857 100644
+--- a/mm/mprotect.c
++++ b/mm/mprotect.c
+@@ -454,7 +454,7 @@ mprotect_fixup(struct vm_area_struct *vma, struct vm_area_struct **pprev,
+ 	pgoff = vma->vm_pgoff + ((start - vma->vm_start) >> PAGE_SHIFT);
+ 	*pprev = vma_merge(mm, *pprev, start, end, newflags,
+ 			   vma->anon_vma, vma->vm_file, pgoff, vma_policy(vma),
+-			   vma->vm_userfaultfd_ctx, anon_vma_name(vma));
++			   vma->vm_userfaultfd_ctx, vma_anon_name(vma));
+ 	if (*pprev) {
+ 		vma = *pprev;
+ 		VM_WARN_ON((vma->vm_flags ^ newflags) & ~VM_SOFTDIRTY);
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index 125e8f9f9..15d25006c 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -71,9 +71,6 @@
+ #include <linux/padata.h>
+ #include <linux/khugepaged.h>
+ #include <linux/zswapd.h>
+-#ifdef CONFIG_RECLAIM_ACCT
+-#include <linux/reclaim_acct.h>
+-#endif
+ 
+ #include <asm/sections.h>
+ #include <asm/tlbflush.h>
+@@ -4399,13 +4396,7 @@ __alloc_pages_direct_reclaim(gfp_t gfp_mask, unsigned int order,
+ 	 */
+ 	if (!page && !drained) {
+ 		unreserve_highatomic_pageblock(ac, false);
+-#ifdef CONFIG_RECLAIM_ACCT
+-		reclaimacct_substage_start(RA_DRAINALLPAGES);
+-#endif
+ 		drain_all_pages(NULL);
+-#ifdef CONFIG_RECLAIM_ACCT
+-		reclaimacct_substage_end(RA_DRAINALLPAGES, 0, NULL);
+-#endif
+ 		drained = true;
+ 		goto retry;
+ 	}
+@@ -4662,7 +4653,6 @@ __alloc_pages_slowpath(gfp_t gfp_mask, unsigned int order,
+ 	int no_progress_loops;
+ 	unsigned int cpuset_mems_cookie;
+ 	int reserve_flags;
+-	struct reclaim_acct ra = {0};
+ 
+ 	/*
+ 	 * We also sanity check to catch abuse of atomic reserves being used by
+@@ -4796,14 +4786,8 @@ __alloc_pages_slowpath(gfp_t gfp_mask, unsigned int order,
+ 		goto nopage;
+ 
+ 	/* Try direct reclaim and then allocating */
+-#ifdef CONFIG_RECLAIM_ACCT
+-	reclaimacct_start(DIRECT_RECLAIMS, &ra);
+-#endif
+ 	page = __alloc_pages_direct_reclaim(gfp_mask, order, alloc_flags, ac,
+ 							&did_some_progress);
+-#ifdef CONFIG_RECLAIM_ACCT
+-	reclaimacct_end(DIRECT_RECLAIMS);
+-#endif
+ 	if (page)
+ 		goto got_pg;
+ 
+@@ -5111,23 +5095,6 @@ static struct page *__page_frag_cache_refill(struct page_frag_cache *nc,
+ 
+ 	nc->va = page ? page_address(page) : NULL;
+ 
+-#ifdef CONFIG_PAGE_TRACING
+-	if (likely(page)) {
+-		int order = get_order(nc->size);
+-		int i;
+-		struct page *newpage = page;
+-		unsigned int deta = 1U << (unsigned int)order;
+-
+-		for (i = 0; i < (1 << order); i++) {
+-			if (!newpage)
+-				break;
+-			SetPageSKB(newpage);
+-			newpage++;
+-		}
+-		mod_zone_page_state(page_zone(page), NR_SKB_PAGES, (long)deta);
+-	}
+-#endif
+-
+ 	return page;
+ }
+ 
+@@ -5135,16 +5102,8 @@ void __page_frag_cache_drain(struct page *page, unsigned int count)
+ {
+ 	VM_BUG_ON_PAGE(page_ref_count(page) == 0, page);
+ 
+-	if (page_ref_sub_and_test(page, count)) {
+-#ifdef CONFIG_PAGE_TRACING
+-		if (likely(page)) {
+-			unsigned int deta = 1U << compound_order(page);
+-
+-			mod_zone_page_state(page_zone(page), NR_SKB_PAGES, -(long)deta);
+-		}
+-#endif
++	if (page_ref_sub_and_test(page, count))
+ 		free_the_page(page, compound_order(page));
+-	}
+ }
+ EXPORT_SYMBOL(__page_frag_cache_drain);
+ 
+@@ -5214,16 +5173,8 @@ void page_frag_free(void *addr)
+ {
+ 	struct page *page = virt_to_head_page(addr);
+ 
+-	if (unlikely(put_page_testzero(page))) {
+-#ifdef CONFIG_PAGE_TRACING
+-		if (likely(page)) {
+-			unsigned int deta = 1U << compound_order(page);
+-
+-			mod_zone_page_state(page_zone(page), NR_SKB_PAGES, -(long)deta);
+-		}
+-#endif
++	if (unlikely(put_page_testzero(page)))
+ 		free_the_page(page, compound_order(page));
+-	}
+ }
+ EXPORT_SYMBOL(page_frag_free);
+ 
+diff --git a/mm/vmalloc.c b/mm/vmalloc.c
+index f98801428..11bd44f92 100644
+--- a/mm/vmalloc.c
++++ b/mm/vmalloc.c
+@@ -2097,6 +2097,7 @@ struct vm_struct *__get_vm_area_caller(unsigned long size, unsigned long flags,
+ 	return __get_vm_area_node(size, 1, flags, start, end, NUMA_NO_NODE,
+ 				  GFP_KERNEL, caller);
+ }
++EXPORT_SYMBOL_GPL(__get_vm_area_caller);
+ 
+ /**
+  * get_vm_area - reserve a contiguous kernel virtual area
+diff --git a/mm/vmscan.c b/mm/vmscan.c
+index 5371b75ff..86da03e27 100644
+--- a/mm/vmscan.c
++++ b/mm/vmscan.c
+@@ -67,10 +67,6 @@
+ #include <linux/memcg_policy.h>
+ #endif
+ 
+-#ifdef CONFIG_RECLAIM_ACCT
+-#include <linux/reclaim_acct.h>
+-#endif
+-
+ #ifdef ARCH_HAS_PREFETCHW
+ #define prefetchw_prev_lru_page(_page, _base, _field)			\
+ 	do {								\
+@@ -599,16 +595,10 @@ unsigned long shrink_slab(gfp_t gfp_mask, int nid,
+ 			.memcg = memcg,
+ 		};
+ 
+-#ifdef CONFIG_RECLAIM_ACCT
+-		reclaimacct_substage_start(RA_SHRINKSLAB);
+-#endif
+ 		ret = do_shrink_slab(&sc, shrinker, priority);
+ 		if (ret == SHRINK_EMPTY)
+ 			ret = 0;
+ 		freed += ret;
+-#ifdef CONFIG_RECLAIM_ACCT
+-		reclaimacct_substage_end(RA_SHRINKSLAB, ret, shrinker);
+-#endif
+ 		/*
+ 		 * Bail out if someone want to register a new shrinker to
+ 		 * prevent the registration from being stalled for long periods
+@@ -2122,31 +2112,15 @@ unsigned long reclaim_pages(struct list_head *page_list)
+ unsigned long shrink_list(enum lru_list lru, unsigned long nr_to_scan,
+ 				 struct lruvec *lruvec, struct scan_control *sc)
+ {
+-#ifdef CONFIG_RECLAIM_ACCT
+-	unsigned long nr_reclaimed;
+-	unsigned int stub;
+-
+-	stub = is_file_lru(lru) ? RA_SHRINKFILE : RA_SHRINKANON;
+-	reclaimacct_substage_start(stub);
+-#endif
+ 	if (is_active_lru(lru)) {
+ 		if (sc->may_deactivate & (1 << is_file_lru(lru)))
+ 			shrink_active_list(nr_to_scan, lruvec, sc, lru);
+ 		else
+ 			sc->skipped_deactivate = 1;
+-#ifdef CONFIG_RECLAIM_ACCT
+-		reclaimacct_substage_end(stub, 0, NULL);
+-#endif
+ 		return 0;
+ 	}
+ 
+-#ifdef CONFIG_RECLAIM_ACCT
+-	nr_reclaimed = shrink_inactive_list(nr_to_scan, lruvec, sc, lru);
+-	reclaimacct_substage_end(stub, nr_reclaimed, NULL);
+-	return nr_reclaimed;
+-#else
+ 	return shrink_inactive_list(nr_to_scan, lruvec, sc, lru);
+-#endif
+ }
+ 
+ /*
+@@ -3878,7 +3852,6 @@ static int kswapd(void *p)
+ 	pg_data_t *pgdat = (pg_data_t*)p;
+ 	struct task_struct *tsk = current;
+ 	const struct cpumask *cpumask = cpumask_of_node(pgdat->node_id);
+-	struct reclaim_acct ra = {0};
+ 
+ 	if (!cpumask_empty(cpumask))
+ 		set_cpus_allowed_ptr(tsk, cpumask);
+@@ -3939,14 +3912,8 @@ static int kswapd(void *p)
+ 		 */
+ 		trace_mm_vmscan_kswapd_wake(pgdat->node_id, highest_zoneidx,
+ 						alloc_order);
+-#ifdef CONFIG_RECLAIM_ACCT
+-		reclaimacct_start(KSWAPD_RECLAIM, &ra);
+-#endif
+ 		reclaim_order = balance_pgdat(pgdat, alloc_order,
+ 						highest_zoneidx);
+-#ifdef CONFIG_RECLAIM_ACCT
+-		reclaimacct_end(KSWAPD_RECLAIM);
+-#endif
+ 		if (reclaim_order < alloc_order)
+ 			goto kswapd_try_sleep;
+ 	}
+diff --git a/mm/vmstat.c b/mm/vmstat.c
+index 5b9b46f42..ec58ac28b 100644
+--- a/mm/vmstat.c
++++ b/mm/vmstat.c
+@@ -1164,9 +1164,6 @@ const char * const vmstat_text[] = {
+ #endif
+ 	"nr_free_cma",
+ 
+-#ifdef CONFIG_PAGE_TRACING
+-	"nr_skb_pages",
+-#endif
+ 	/* enum numa_stat_item counters */
+ #ifdef CONFIG_NUMA
+ 	"numa_hit",
+diff --git a/mm/zsmalloc.c b/mm/zsmalloc.c
+index daa9703b6..7a0b79b0a 100644
+--- a/mm/zsmalloc.c
++++ b/mm/zsmalloc.c
+@@ -1085,9 +1085,6 @@ static struct zspage *alloc_zspage(struct zs_pool *pool,
+ 		}
+ 
+ 		inc_zone_page_state(page, NR_ZSPAGES);
+-#ifdef CONFIG_PAGE_TRACING
+-		SetPageZspage(page);
+-#endif
+ 		pages[i] = page;
+ 	}
+ 
+diff --git a/mm/zswapd.c b/mm/zswapd.c
+index 547bcf94b..4bde41f21 100644
+--- a/mm/zswapd.c
++++ b/mm/zswapd.c
+@@ -10,9 +10,6 @@
+ #include <trace/events/vmscan.h>
+ #include <uapi/linux/sched/types.h>
+ #include <linux/zswapd.h>
+-#ifdef CONFIG_RECLAIM_ACCT
+-#include <linux/reclaim_acct.h>
+-#endif
+ 
+ #include "zswapd_internal.h"
+ #include "internal.h"
+@@ -533,29 +530,15 @@ static unsigned long zswapd_shrink_list(enum lru_list lru,
+ 		unsigned long nr_to_scan, struct lruvec *lruvec,
+ 		struct scan_control *sc)
+ {
+-#ifdef CONFIG_RECLAIM_ACCT
+-	unsigned long nr_reclaimed;
+-
+-	reclaimacct_substage_start(RA_SHRINKANON);
+-#endif
+ 	if (is_active_lru(lru)) {
+ 		if (sc->may_deactivate & (1 << is_file_lru(lru)))
+ 			zswapd_shrink_active_list(nr_to_scan, lruvec, sc, lru);
+ 		else
+ 			sc->skipped_deactivate = 1;
+-#ifdef CONFIG_RECLAIM_ACCT
+-		reclaimacct_substage_end(RA_SHRINKANON, 0, NULL);
+-#endif
+ 		return 0;
+ 	}
+ 
+-#ifdef CONFIG_RECLAIM_ACCT
+-	nr_reclaimed = shrink_inactive_list(nr_to_scan, lruvec, sc, lru);
+-	reclaimacct_substage_end(RA_SHRINKANON, nr_reclaimed, NULL);
+-	return nr_reclaimed;
+-#else
+ 	return shrink_inactive_list(nr_to_scan, lruvec, sc, lru);
+-#endif
+ }
+ 
+ static void zswapd_shrink_anon_memcg(struct pglist_data *pgdat,
+@@ -763,12 +746,10 @@ static int zswapd(void *p)
+ 	struct task_struct *tsk = current;
+ 	pg_data_t *pgdat = (pg_data_t *)p;
+ 	const struct cpumask *cpumask = cpumask_of_node(pgdat->node_id);
+-	struct reclaim_acct ra = {0};
+ 
+ 	/* save zswapd pid for schedule strategy */
+ 	zswapd_pid = tsk->pid;
+ 
+-
+ 	if (!cpumask_empty(cpumask))
+ 		set_cpus_allowed_ptr(tsk, cpumask);
+ 
+@@ -790,13 +771,7 @@ static int zswapd(void *p)
+ 			goto do_eswap;
+ 		}
+ 
+-#ifdef CONFIG_RECLAIM_ACCT
+-		reclaimacct_start(ZSWAPD_RECLAIM, &ra);
+-#endif
+ 		zswapd_shrink_node(pgdat);
+-#ifdef CONFIG_RECLAIM_ACCT
+-		reclaimacct_end(ZSWAPD_RECLAIM);
+-#endif
+ 		last_zswapd_time = jiffies;
+ 
+ do_eswap:
