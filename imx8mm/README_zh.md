@@ -155,8 +155,3 @@ out/imx8mm/ohos-arm-release/packages/phone/images/ 目录下。
 
 烧写工具下载及使用。
 [参考](https://gitee.com/osware_admin_admin/burning-tools-and-guidelines)
-
-
-
-
-

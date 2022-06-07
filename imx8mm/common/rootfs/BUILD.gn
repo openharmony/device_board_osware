@@ -80,43 +80,43 @@ ohos_prebuilt_etc("fstab.required") {
 #loader
 #****************************************************
 ohos_copy("flash.bin") {
-  sources = [ "//device/board/osware/imx8mm/loader/flash_v2.bin" ]
-  outputs = [ "$root_build_dir/packages/phone/images/flash_v2.bin" ]
+  sources = [ "//device/board/osware/imx8mm/loader/flash.bin" ]
+  outputs = [ "$root_build_dir/packages/phone/images/flash.bin" ]
 }
 
 #****************************************************
 #wifi firmware
 #****************************************************
 ohos_prebuilt_etc("firmware_apsta_bin") {
-  source = "//device/board/osware/imx8mm/wifi/firmware/fw_bcm43438a1_apsta.bin"
+  source = "//device/board/osware/imx8mm/drivers/wifi/firmware/fw_bcm43438a1_apsta.bin"
   module_install_dir = "./etc/wifi"
   install_images = [ "system" ]
   part_name = "osware_products"
 }
 
 ohos_prebuilt_etc("firmware_p2p_bin") {
-  source = "//device/board/osware/imx8mm/wifi/firmware/fw_bcm43438a1_p2p.bin"
+  source = "//device/board/osware/imx8mm/drivers/wifi/firmware/fw_bcm43438a1_p2p.bin"
   module_install_dir = "./etc/wifi"
   install_images = [ "system" ]
   part_name = "osware_products"
 }
 
 ohos_prebuilt_etc("firmware_bin") {
-  source = "//device/board/osware/imx8mm/wifi/firmware/fw_bcm43438a1.bin"
+  source = "//device/board/osware/imx8mm/drivers/wifi/firmware/fw_bcm43438a1.bin"
   module_install_dir = "./etc/wifi"
   install_images = [ "system" ]
   part_name = "osware_products"
 }
 
 ohos_prebuilt_etc("firmware_a_nvram") {
-  source = "//device/board/osware/imx8mm/wifi/firmware/nvram_ap6212a.txt"
+  source = "//device/board/osware/imx8mm/drivers/wifi/firmware/nvram_ap6212a.txt"
   module_install_dir = "./etc/wifi"
   install_images = [ "system" ]
   part_name = "osware_products"
 }
 
 ohos_prebuilt_etc("firmware_hcd") {
-  source = "//device/board/osware/imx8mm/wifi/firmware/bcm43438a1.hcd"
+  source = "//device/board/osware/imx8mm/drivers/wifi/firmware/bcm43438a1.hcd"
   module_install_dir = "./etc/wifi"
   install_images = [ "system" ]
   part_name = "osware_products"
@@ -125,22 +125,18 @@ ohos_prebuilt_etc("firmware_hcd") {
 group("init_configs") {
   deps = [
     ":flash.bin",
-    ":flash_v2.bin",
-    ":fstab.required",
     ":fstab.imx8mm",
+    ":fstab.required",
+    ":weston.cfg",
     ":init.imx8mm.cfg",
     ":init.imx8mm.usb.cfg",
-    ":weston.cfg",
     ":init.without_two_stages.cfg",
-    ":sdma-imx7d_bin",
-    ":imx-sdma_ko",
     ":init.imx8mm.rc",
     ":init.imx8mm.usb.rc",
-    ":ov5640_camera_mipi_v2.ko",
-    ":firmware_apsta_bin",
-    ":firmware_p2p_bin",
+    ":firmware_hcd",
     ":firmware_bin",
     ":firmware_a_nvram",
-    ":firmware_hcd"
+    ":firmware_p2p_bin",
+    ":firmware_apsta_bin",
   ]
 }

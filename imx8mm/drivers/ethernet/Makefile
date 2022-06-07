@@ -19,7 +19,7 @@ MODULE_NAME := hdf_ethernet_model
 ETHERNET_PATH := $(shell pwd)
 $(warning ETHERNET_PATH=$(ETHERNET_PATH))
 
-include $(ETHERNET_PATH)/../../../../../device/board/osware/imx8mm/ethernet/ethernet_config.mk
+include $(ETHERNET_PATH)/../../../../../device/board/osware/imx8mm/drivers/ethernet/ethernet_config.mk
 
 ETHERNET_FW_PATH := ../../../../../../out/KERNEL_OBJ/kernel/src_tmp/linux-5.10/drivers/hdf/framework/model/network/ethernet/src
 ETHERNET_AP_PATH := ../../../../../../out/KERNEL_OBJ/kernel/src_tmp/linux-5.10/drivers/hdf/khdf/network/src

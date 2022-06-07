@@ -48,7 +48,7 @@ SECURE_LIB_INC := \
     -I./../../../../../third_party/bounds_checking_function/include
 
 HDF_ETHERNET_ADAPTER_INC := \
-    -I./../../../../../device/nxp/drivers/ethernet \
+    -I./../../../../../device/board/osware/imx8mm/drivers/ethernet \
     -Idrivers/hdf/khdf/network/include \
     -Idrivers/net/ethernet/freescale/
 

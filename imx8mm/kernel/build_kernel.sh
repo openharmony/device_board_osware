@@ -46,5 +46,5 @@ else
     mkdir -p ${3}/../../phone/system/etc/imx_camera
 fi
 cp ${2}/kernel/src_tmp/${8}/TEST/lib/modules/5.10.72/kernel/drivers/dma/imx-sdma.ko ${3}/../../phone/system/etc/imx_sdma
-cp ${2}/kernel/src_tmp/${8}/TEST/lib/modules/5.10.72/kernel/drivers/media/platform/mxc/capture/imx-sdma.ko ${3}/../../phone/system/etc/imx_camera
+cp ${2}/kernel/src_tmp/${8}/TEST/lib/modules/5.10.72/kernel/drivers/media/platform/mxc/capture/ov5640_camera_mipi_v2.ko ${3}/../../phone/system/etc/imx_camera
 popd

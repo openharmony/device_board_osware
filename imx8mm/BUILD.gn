@@ -19,7 +19,7 @@ import("//build/ohos.gni")
 print("imx8mm_group in")
 group("imx8mm_group") {
   deps = [
-    "build/rootfs:init_configs",
+    "common/rootfs:init_configs",
     "kernel:build_kernel",
     "//device/soc/nxp/hardware:hardware_group",
   ]

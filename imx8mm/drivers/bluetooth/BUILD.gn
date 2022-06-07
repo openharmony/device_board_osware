@@ -31,7 +31,7 @@ config("bt_warnings") {
 }
 
 ohos_prebuilt_etc("BCM43438A1.hcd") {
-  source = "//vendor/osware/imx8mm/bluetooth/BCM43438A1.hcd"
+  source = "//device/board/osware/imx8mm/drivers/bluetooth/firmware/BCM43438A1.hcd"
   install_images = [ vendor_base_dir ]
   relative_install_dir = "firmware"
   part_name = "osware_products"
@@ -41,15 +41,15 @@ ohos_prebuilt_etc("BCM43438A1.hcd") {
 ohos_shared_library("libbt_vendor") {
   output_name = "libbt_vendor"
   sources = [
-    "src/bt_vendor_brcm.c",
-    "src/conf.c",
-    "src/hardware.c",
-    "src/upio.c",
-    "src/userial_vendor.c",
+    "source/src/bt_vendor_brcm.c",
+    "source/src/conf.c",
+    "source/src/hardware.c",
+    "source/src/upio.c",
+    "source/src/userial_vendor.c",
   ]
 
   include_dirs = [
-    "include",
+    "source/include",
     "//base/hiviewdfx/hilog/interfaces/native/innerkits/include",
     "//foundation/communication/bluetooth/services/bluetooth/hardware/include",
   ]

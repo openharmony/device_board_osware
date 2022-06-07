@@ -52,5 +52,5 @@ SECURE_LIB_INC := \
     -I./../../../../../third_party/bounds_checking_function/include
 
 HDF_WIFI_ADAPTER_INC := \
-    -I./../../../../../device/board/osware/imx8mm/wifi/adapter \
+    -I./../../../../../device/board/osware/imx8mm/drivers/wifi/adapter \
     -Idrivers/hdf/khdf/network/include
