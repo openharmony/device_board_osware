@@ -6,7 +6,7 @@
 
 OSware MILOS_Standard0开发板外观图如图1所示：
 
-**![MILOS_Standard0产品图01](./picture/MILOS_Standard_0.png)**
+**![MILOS_Standard0产品图01](./common/figures/MILOS_Standard_0.png)**
 
 图1：OSware MILOS_Standard0开发板外观图
 
@@ -14,13 +14,13 @@ OSware MILOS_Standard0开发板外观图如图1所示：
 
 **1、OSware MILOS_Standard0开发板正面外观图**
 
-**![MILOS_Standard0接口说明_02](./picture/MILOS_Standard_0_Front.png)**
+**![MILOS_Standard0接口说明_02](./common/figures/MILOS_Standard_0_Front.png)**
 
 图2：OSware MILOS_Standard0开发板正面外观图
 
 2、**OSware MILOS_Standard0开发板反面外观图**
 
-**![MILOS_Standard0接口说明_03](./picture/MILOS_Standard_0_Back.png)**
+**![MILOS_Standard0接口说明_03](./common/figures/MILOS_Standard_0_Back.png)**
 
 图3：OSware MILOS_Standard0开发板反面外观图
 
@@ -31,7 +31,7 @@ NXP iMX 8m mini采用四核64位Cortex-A53
 
 **1、OSware MILOS_Standard0开发板规格图**
 
-**![MILOS_Standard0接口说明_04](./picture/MILOS_Standard_0_Spec.png)**
+**![MILOS_Standard0接口说明_04](./common/figures/MILOS_Standard_0_Spec.png)**
 
 图4：OSware MILOS_Standard0开发板规格图
 
@@ -51,11 +51,11 @@ NXP iMX 8m mini采用四核64位Cortex-A53
 
 **1、摄像头模组安装如下图：**
 
-![MILOS_Standard0配件安装_01](./picture/MILOS_Standard_0_Camera.png)
+![MILOS_Standard0配件安装_01](./common/figures/MILOS_Standard_0_Camera.png)
 
 **2、LVDS 屏幕安装如下图：**
 
-![MILOS_Standard0配件安装_02](./picture/MILOS_Standard_0_LVDS.png)
+![MILOS_Standard0配件安装_02](./common/figures/MILOS_Standard_0_LVDS.png)
 
 **五、开发板应用场景**
 
@@ -155,8 +155,3 @@ out/imx8mm/ohos-arm-release/packages/phone/images/ 目录下。
 
 烧写工具下载及使用。
 [参考](https://gitee.com/osware_admin_admin/burning-tools-and-guidelines)
-
-
-
-
-

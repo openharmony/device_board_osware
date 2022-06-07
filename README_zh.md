@@ -23,7 +23,7 @@ device/board/osware
 ## 使用说明
 
 MILOS_Standard0参考:
-- [MILOS_Standard0](https://gitee.com/openharmony/device_board_hihope/blob/master/rk3568/README_zh.md)
+- [MILOS_Standard0](https://gitee.com/openharmony-sig/device_board_osware/blob/master/imx8mm/README_zh.md)
 
 ## 相关仓
 

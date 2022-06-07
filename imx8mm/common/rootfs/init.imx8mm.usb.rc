@@ -1,0 +1,35 @@
+on boot
+    mkdir /dev/usb-ffs 0770 shell shell
+    mkdir /dev/usb-ffs/hdc 0770 shell shell
+    mount configfs none /config
+    mkdir /config/usb_gadget/g1 0770 shell shell
+    write /config/usb_gadget/g1/idVendor 0x1D6B
+    write /config/usb_gadget/g1/idProduct 0x0002
+    write /config/usb_gadget/g1/os_desc/use 1
+    write /config/usb_gadget/g1/bcdDevice 0x0223
+    write /config/usb_gadget/g1/bcdUSB 0x0200
+    mkdir /config/usb_gadget/g1/strings/0x409 0770
+    copy /sys/block/mmcblk0/device/cid /config/usb_gadget/g1/strings/0x409/serialnumber 
+    write /config/usb_gadget/g1/strings/0x409/manufacturer "NXP"
+    write /config/usb_gadget/g1/strings/0x409/product "HDC Device"
+    mkdir /config/usb_gadget/g1/functions/ffs.hdc
+    mkdir /config/usb_gadget/g1/configs/b.1 0770 shell shell
+    mkdir /config/usb_gadget/g1/configs/b.1/strings/0x409 0770 shell shell
+    write /config/usb_gadget/g1/os_desc/b_vendor_code 0x1
+    write /config/usb_gadget/g1/os_desc/qw_sign "MSFT100"
+    write /config/usb_gadget/g1/configs/b.1/MaxPower 500
+    symlink /config/usb_gadget/g1/configs/b.1 /config/usb_gadget/g1/os_desc/b.1
+    mount functionfs hdc /dev/usb-ffs/hdc uid=2000,gid=2000
+    setprop sys.usb.configfs 1
+    setprop sys.usb.controller "ci_hdrc.0"
+
+on property:sys.usb.config=none && property:sys.usb.configfs=1
+    write /config/usb_gadget/g1/os_desc/use 0
+    setprop sys.usb.ffs.ready 0
+
+on property:init.svc.hdcd=stopped
+    setprop sys.usb.ffs.ready 0
+
+on property:sys.usb.config=hdc,adb && property:sys.usb.configfs=1
+    write /config/usb_gadget/g1/idProduct 0x0002
+    write /config/usb_gadget/g1/os_desc/use 1
