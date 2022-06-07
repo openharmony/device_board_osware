@@ -1,0 +1,80 @@
+# Copyright© 2021–2022 Beijing OSWare Technology Co., Ltd
+# This file contains confidential and proprietary information of
+# OSWare Technology Co., Ltd
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//build/test.gni")
+
+module_output_path = "hdf/platform"
+ohos_unittest("hdf_adapter_uhdf_test_platform") {
+  module_out_path = module_output_path
+  include_dirs = [
+    "//drivers/framework/include/platform",
+    "//drivers/framework/include/core",
+    "//drivers/framework/include/osal",
+    "//drivers/adapter/uhdf/posix/include",
+    "//drivers/framework/include/utils",
+    "//drivers/framework/include",
+    "//drivers/framework/test/unittest/include",
+    "//drivers/framework/test/unittest/platform/common",
+    "//drivers/framework/core/host/include",
+    "//drivers/framework/core/manager/include",
+    "//drivers/adapter/uhdf2/include/host",
+    "//drivers/framework/support/platform/include",
+    "//drivers/framework/support/platform/include/fwk",
+    "//drivers/framework/model/storage/include/mmc",
+    "//drivers/framework/support/platform/include/spi",
+    "//drivers/framework/support/platform/include/watchdog",
+    "//drivers/framework/support/platform/include/i2c",
+    "//drivers/framework/support/platform/include/uart",
+    "//drivers/framework/support/platform/include/rtc",
+  ]
+
+  sources = [
+    "common/hdf_emmc_test.cpp",
+    "common/hdf_gpio_test.cpp",
+    "common/hdf_i2c_test.cpp",
+    "common/hdf_pwm_test.cpp",
+    "common/hdf_rtc_test.cpp",
+    "common/hdf_spi_test.cpp",
+    "common/hdf_uart_test.cpp",
+    "common/hdf_watchdog_test.cpp",
+    "common/hdf_mipi_dsi_test.cpp",
+    "common/hdf_sdio_test.cpp",
+  ]
+
+  defines = [ "__USER__" ]
+  deps = [
+    "//drivers/adapter/build/test_common:libhdf_test_common",
+    "//drivers/adapter/uhdf2/utils:libhdf_utils",
+  ]
+  resource_config_file =
+      "//drivers/adapter/uhdf2/test/resource/platform/ohos_test.xml"
+  cflags = [
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-fsigned-char",
+    "-fno-common",
+    "-fno-strict-aliasing",
+  ]
+  if (is_standard_system) {
+    external_deps = [
+      "hiviewdfx_hilog_native:libhilog",
+      "utils_base:utils",
+    ]
+  } else {
+    external_deps = [ "hilog:libhilog" ]
+  }
+}
