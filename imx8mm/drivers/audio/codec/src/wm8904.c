@@ -1,5 +1,5 @@
 /*
- * Copyright© 2021–2022 Beijing OSWare Technology Co., Ltd
+ * Copyright (C) 2021–2022 Beijing OSWare Technology Co., Ltd
  * This file contains confidential and proprietary information of
  * OSWare Technology Co., Ltd
  *
@@ -41,7 +41,6 @@
 
 #include "audio_codec_base.h"
 #include "audio_core.h"
-#include "audio_accessory_base.h"
 
 struct wm8904_priv *gpwm8904;
 DevHandle g_wm8904_i2c_handle = NULL;
@@ -53,15 +52,10 @@ int  WM8904RegRead(DevHandle i2cHandle, unsigned int reg, unsigned int *val , un
 int  WM8904RegWrite(DevHandle i2cHandle, unsigned int reg,  unsigned int val, unsigned int dataLen);
 int  WM8904RegUpdateBits(DevHandle i2cHandle, unsigned int reg,
                          unsigned int mask, unsigned int val, unsigned int dataLen);
-
-int32_t AccessoryDevReadReg(const struct AccessoryDevice *codec, uint32_t reg, uint32_t *val);
-int32_t AccessoryDevWriteReg(const struct AccessoryDevice *codec, uint32_t reg, uint32_t value);
-int32_t AccessoryDevInit(struct AudioCard *audioCard, const struct AccessoryDevice *device);
-int32_t AccessoryAiaoDevReadReg(const struct AccessoryDevice *codec, uint32_t reg, uint32_t *val);
-int32_t AccessoryAiaoDevWriteReg(const struct AccessoryDevice *codec, uint32_t reg, uint32_t value);
-int32_t AccessoryDaiStart(const struct AudioCard *card, const struct DaiDevice *device);
-int32_t AccessoryDaiHwParamsSet(const struct AudioCard *card, const struct AudioPcmHwParams *param);
-int32_t AccessoryDaiDevInit(struct AudioCard *card, const struct DaiDevice *device);
+int32_t Wm8904DaiStart(const struct AudioCard *card, const struct DaiDevice *device);
+int32_t Wm8904DaiHwParamsSet(const struct AudioCard *card, const struct AudioPcmHwParams *param);
+int32_t Wm8904DaiDevInit(struct AudioCard *card, const struct DaiDevice *device);
+int32_t Wm8904DevInit(struct AudioCard *audioCard, const struct CodecDevice *device);
 
 #define AUDIO_DRV_PCMIOCTL_CAPUTRE_START  7
 #define AUDIO_DRV_PCM_IOCTL_RENDER_START  5
@@ -644,7 +638,7 @@ static int WM8904_Set_Fmt(unsigned int fmt);
 int WM8904_SET_BIAS_LEVEL(enum snd_soc_bias_level level);
 int g_wm8904HwPara = 0;
 struct AudioPcmHwParams g_PcmParams = {0};
-int AccessoryDaiHwParamsSet(const struct AudioCard *card, const struct AudioPcmHwParams *param)
+int Wm8904DaiHwParamsSet(const struct AudioCard *card, const struct AudioPcmHwParams *param)
 {
     int ret = 0, i = 0, best = 0, best_val = 0, cur_val = 0;
     unsigned int aif1 = 0;
@@ -777,7 +771,7 @@ int AccessoryDaiHwParamsSet(const struct AudioCard *card, const struct AudioPcmH
     return 0;
 }
 
-int32_t AccessoryDaiTrigger(const struct AudioCard *audioCard, int cmd, const struct DaiDevice *dai)
+int32_t Wm8904DaiTrigger(const struct AudioCard *audioCard, int cmd, const struct DaiDevice *dai)
 {
     WM8904_CODEC_LOG_ERR("cmd = %d ", cmd);
     int32_t val = 0;
@@ -1021,54 +1015,38 @@ int find_i2c_client(struct device *dev, void *data);
 /* HdfDriverEntry implementations */
 static int32_t CodecDriverBind(struct HdfDeviceObject *device)
 {
-    WM8904_CODEC_LOG_DEBUG("entry!");
-    return HDF_SUCCESS;
-}
-
-struct AccessoryData g_g8904_accessory_data = {
-    .Init = AccessoryDevInit,
-    .Read = AccessoryDeviceRegRead,
-    .Write = AccessoryDeviceRegWrite,
-};
-
-struct AudioDaiOps g_g8904_accessory_dai_device_ops = {
-    .Startup = AccessoryDaiStart,
-    .HwParams = AccessoryDaiHwParamsSet,
-    .Trigger = AccessoryDaiTrigger,
-};
-
-struct DaiData g_g8904_accessory_dai_data = {
-    .drvDaiName = "accessory8904_dai",
-    .DaiInit = AccessoryDaiDevInit,
-    .ops = &g_g8904_accessory_dai_device_ops,
-};
-
-static int32_t GetServiceName(const struct HdfDeviceObject *device)
-{
-    const struct DeviceResourceNode *node = NULL;
-    struct DeviceResourceIface *drsOps = NULL;
-    int32_t ret = 0;
     if (device == NULL) {
-        WM8904_CODEC_LOG_ERR("input HdfDeviceObject object is nullptr.");
+        WM8904_CODEC_LOG_ERR("input para is NULL.");
         return HDF_FAILURE;
     }
-    node = device->property;
-    if (node == NULL) {
-        WM8904_CODEC_LOG_ERR("get drs node is nullptr.");
+
+    struct CodecHost *codecHost = (struct CodecHost *)OsalMemCalloc(sizeof(*codecHost));
+    if (codecHost == NULL) {
+        WM8904_CODEC_LOG_ERR("malloc codecHost fail!");
         return HDF_FAILURE;
     }
-    drsOps = DeviceResourceGetIfaceInstance(HDF_CONFIG_SOURCE);
-    if (drsOps == NULL || drsOps->GetString == NULL) {
-        WM8904_CODEC_LOG_ERR("drsOps or drsOps getString is null!");
-        return HDF_FAILURE;
-    }
-    ret = drsOps->GetString(node, "serviceName", &g_g8904_accessory_data.drvAccessoryName, 0);
-    if (ret != HDF_SUCCESS) {
-        WM8904_CODEC_LOG_ERR("read serviceName fail!");
-        return ret;
-    }
+    codecHost->device = device;
+    device->service = &codecHost->service;
     return HDF_SUCCESS;
 }
+
+struct CodecData g_g8904_codec_data = {
+    .Init = Wm8904DevInit,
+    .Read = CodecDeviceRegI2cRead,
+    .Write = CodecDeviceRegI2cWrite,
+};
+
+struct AudioDaiOps g_g8904_codec_dai_device_ops = {
+    .Startup = Wm8904DaiStart,
+    .HwParams = Wm8904DaiHwParamsSet,
+    .Trigger = Wm8904DaiTrigger,
+};
+
+struct DaiData g_g8904_codec_dai_data = {
+    .drvDaiName = "wm8904_codec_dai",
+    .DaiInit = Wm8904DaiDevInit,
+    .ops = &g_g8904_codec_dai_device_ops,
+};
 
 #define FINDFLAG 1
 int find_i2c_client(struct device *dev, void *data)
@@ -1326,15 +1304,23 @@ static int32_t CodecDriverInit(struct HdfDeviceObject *device)
         WM8904_CODEC_LOG_ERR("device is NULL.");
         return HDF_ERR_INVALID_OBJECT;
     }
-    ret = AccessoryGetConfigInfo(device, &g_g8904_accessory_data);
+    ret = CodecGetConfigInfo(device, &g_g8904_codec_data);
+    if (ret !=  HDF_SUCCESS) {
+        WM8904_CODEC_LOG_ERR("get config info failed.");
+        return ret;
+    }
 
-    ret = GetServiceName(device);
+    if (CodecSetConfigInfo(&g_g8904_codec_data, &g_g8904_codec_dai_data) != HDF_SUCCESS) {
+        WM8904_CODEC_LOG_ERR("set config info failed.");
+        return HDF_FAILURE;
+    }
+    ret = CodecGetServiceName(device, &g_g8904_codec_data.drvCodecName);
     if (ret != HDF_SUCCESS) {
         WM8904_CODEC_LOG_ERR("get service name fail");
         return ret;
     }
 
-    ret = AudioRegisterAccessory(device, &g_g8904_accessory_data, &g_g8904_accessory_dai_data);
+    ret = AudioRegisterCodec(device, &g_g8904_codec_data, &g_g8904_codec_dai_data);
     if (ret != HDF_SUCCESS) {
         WM8904_CODEC_LOG_ERR("register dai fail.");
         return ret;

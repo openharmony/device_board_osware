@@ -1,4 +1,4 @@
-# Copyright© 2021–2022 Beijing OSWare Technology Co., Ltd
+# Copyright (C) 2021–2022 Beijing OSWare Technology Co., Ltd
 # This file contains confidential and proprietary information of 
 # OSWare Technology Co., Ltd
 #
