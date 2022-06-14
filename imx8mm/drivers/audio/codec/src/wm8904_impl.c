@@ -1,5 +1,5 @@
 /*
- * Copyright© 2021–2022 Beijing OSWare Technology Co., Ltd
+ * Copyright (C) 2021–2022 Beijing OSWare Technology Co., Ltd
  * This file contains confidential and proprietary information of
  * OSWare Technology Co., Ltd
  *
@@ -24,9 +24,8 @@
 #include "wm8904.h"
 #include "audio_codec_base.h"
 #include "audio_core.h"
-#include "audio_accessory_base.h"
-
 #define WM8904_I2C_BUS_NUM (1)
+#define WM8904_I2C_REG_DATA_LEN  (2)
 DevHandle WM8904I2cOpen(void)
 {
     DevHandle i2cHandle;
@@ -45,7 +44,7 @@ void WM8904I2cClose(DevHandle handle)
 
 #define gwm8904i2cDevAddr (0x1a)
 #define WM8904RegAddrLen  (1)       // unit byte
-struct AccessoryTransferData g_accessoryTransferData;
+struct I2cTransferParam g_transferParam;
 
 
 /************************************************************************************************
@@ -88,28 +87,6 @@ static int __WM8904I2cRead(DevHandle i2cHandle, uint16_t regaddr,
         WM8904_CODEC_LOG_ERR("i2c I2cTransfer read msg err");
         return HDF_FAILURE;
     }
-    return HDF_SUCCESS;
-}
-
-static int __WM8904RegRead(unsigned int regaddr, uint8_t *regdata, unsigned int dataLen)
-{
-    int32_t ret;
-    DevHandle i2cHandle;
-
-    if (regdata == NULL) {
-        WM8904_CODEC_LOG_ERR("input para is NULL.");
-        return HDF_ERR_INVALID_OBJECT;
-    }
-
-    i2cHandle = WM8904I2cOpen();
-    if (i2cHandle == NULL) {
-        WM8904_CODEC_LOG_ERR("wm8904 i2c open fail.");
-        return HDF_ERR_INVALID_OBJECT;
-    }
-
-    ret = __WM8904I2cRead(i2cHandle, regaddr, WM8904RegAddrLen, regdata, dataLen);
-
-    I2cClose(i2cHandle);
     return HDF_SUCCESS;
 }
 
@@ -215,30 +192,6 @@ int WM8904RegWrite(DevHandle i2cHandle, unsigned int reg, unsigned int val , uns
     return HDF_SUCCESS;
 }
 
-int32_t AccessoryDevReadReg(const struct AccessoryDevice *codec, unsigned int reg, unsigned int *val)
-{
-    int32_t ret;
-    unsigned char regBuf[4] = {0};
-
-    WM8904_CODEC_LOG_DEBUG("entry");
-    if (val == NULL){
-        WM8904_CODEC_LOG_ERR("input para is NULL.");
-        return HDF_ERR_INVALID_OBJECT;
-    }
-    (void)codec;
-
-    ret = __WM8904RegRead(reg, regBuf, 4);
-    if (ret != HDF_SUCCESS) {
-        WM8904_CODEC_LOG_ERR("__WM8904RegRead fail.");
-        return HDF_FAILURE;
-    }
-    *val = 0;
-    *val = (regBuf[0] << 24) | (regBuf[1] << 16) | (regBuf[2] << 8) | regBuf[3];
-    WM8904_CODEC_LOG_DEBUG("Read value = 0x%x", *val);
-
-    return HDF_SUCCESS;
-}
-
 int WM8904RegUpdateBits(DevHandle i2cHandle, unsigned int reg, unsigned int mask,
                         unsigned int val, unsigned int dataLen)
 {
@@ -274,45 +227,45 @@ static const struct AudioKcontrol g_audioControls[] = {
         .iface = AUDIODRV_CTL_ELEM_IFACE_ACODEC,
         .name = "External Codec Enable",
         .Info = AudioInfoCtrlOps,
-        .Get = AudioAccessoryGetCtrlOps,
-        .Set = AudioAccessorySetCtrlOps,
+        .Get = AudioCodecGetCtrlOps,
+        .Set = AudioCodecSetCtrlOps,
         .privateValue = (unsigned long)&g_audioRegParams,
     }, {
         .iface = AUDIODRV_CTL_ELEM_IFACE_ACODEC,
         .name = "Internally Codec Enable",
         .Info = AudioInfoCtrlOps,
-        .Get = AudioAccessoryGetCtrlOps,
-        .Set = AudioAccessorySetCtrlOps,
+        .Get = AudioCodecGetCtrlOps,
+        .Set = AudioCodecSetCtrlOps,
         .privateValue = (unsigned long)&g_audioRegParams,
     }, {
         .iface = AUDIODRV_CTL_ELEM_IFACE_AIAO,
         .name = "Render Channel Mode",
         .Info = AudioInfoCtrlOps,
-        .Get = AudioAccessoryGetCtrlOps,
-        .Set = AudioAccessorySetCtrlOps,
+        .Get = AudioCodecGetCtrlOps,
+        .Set = AudioCodecSetCtrlOps,
         .privateValue = (unsigned long)&g_audioRegParams,
     }, {
         .iface = AUDIODRV_CTL_ELEM_IFACE_AIAO,
         .name = "Captrue Channel Mode",
         .Info = AudioInfoCtrlOps,
-        .Get = AudioAccessoryGetCtrlOps,
-        .Set = AudioAccessorySetCtrlOps,
+        .Get = AudioCodecGetCtrlOps,
+        .Set = AudioCodecSetCtrlOps,
         .privateValue = (unsigned long)&g_audioRegParams,
     },
     {
         .iface = AUDIODRV_CTL_ELEM_IFACE_PGA,
         .name = "LPGA MIC Switch",
         .Info = AudioInfoCtrlOps,
-        .Get = AudioAccessoryGetCtrlOps,
-        .Set = AudioAccessorySetCtrlOps,
+        .Get = AudioCodecGetCtrlOps,
+        .Set = AudioCodecSetCtrlOps,
         .privateValue = (unsigned long)&g_audioRegParams,
     },
     {
         .iface = AUDIODRV_CTL_ELEM_IFACE_PGA,
         .name = "RPGA MIC Switch",
         .Info = AudioInfoCtrlOps,
-        .Get = AudioAccessoryGetCtrlOps,
-        .Set = AudioAccessorySetCtrlOps,
+        .Get = AudioCodecGetCtrlOps,
+        .Set = AudioCodecSetCtrlOps,
         .privateValue = (unsigned long)&g_audioRegParams,
     },
     /* for sapm test*/
@@ -320,26 +273,21 @@ static const struct AudioKcontrol g_audioControls[] = {
         .iface = AUDIODRV_CTL_ELEM_IFACE_DAC,
         .name = "Dacl enable",
         .Info = AudioInfoCtrlOps,
-        .Get = AudioAccessoryGetCtrlOps,
-        .Set = AudioAccessorySetCtrlOps,
+        .Get = AudioCodecGetCtrlOps,
+        .Set = AudioCodecSetCtrlOps,
         .privateValue = (unsigned long)&g_audioRegParams,
     },
     {
         .iface = AUDIODRV_CTL_ELEM_IFACE_DAC,
         .name = "Dacr enable",
         .Info = AudioInfoCtrlOps,
-        .Get = AudioAccessoryGetCtrlOps,
-        .Set = AudioAccessorySetCtrlOps,
+        .Get = AudioCodecGetCtrlOps,
+        .Set = AudioCodecSetCtrlOps,
         .privateValue = (unsigned long)&g_audioRegParams,
     },
 };
 
-int32_t AccessoryDevWriteReg(const struct AccessoryDevice *codec, uint32_t reg, uint32_t value)
-{
-    return HDF_SUCCESS;
-}
-
-int32_t AccessoryDevInit(struct AudioCard *audioCard, const struct AccessoryDevice *device)
+int32_t Wm8904DevInit(struct AudioCard *audioCard, const struct CodecDevice *device)
 {
     int32_t ret;
 
@@ -347,17 +295,12 @@ int32_t AccessoryDevInit(struct AudioCard *audioCard, const struct AccessoryDevi
         WM8904_CODEC_LOG_ERR("input para is NULL.");
         return HDF_ERR_INVALID_OBJECT;
     }
-    g_accessoryTransferData.i2cDevAddr = gwm8904i2cDevAddr;
-    g_accessoryTransferData.i2cBusNumber = WM8904_I2C_BUS_NUM;
+    g_transferParam.i2cDevAddr = gwm8904i2cDevAddr;
+    g_transferParam.i2cBusNumber = WM8904_I2C_BUS_NUM;
+    g_transferParam.i2cRegDataLen = WM8904_I2C_REG_DATA_LEN;
+    device->devData->privateParam = &g_transferParam;
+    ret = AudioAddControls(audioCard, device->devData->controls, device->devData->numControls);
 
-    ret = AccessoryDeviceCfgGet(device->devData, &g_accessoryTransferData);
-    if (ret != HDF_SUCCESS) {
-        WM8904_CODEC_LOG_ERR("AccessoryDeviceCfgGet failed.");
-        return HDF_FAILURE;
-    }
-
-    ret = AudioAddControls(audioCard, g_accessoryTransferData.accessoryControls,
-                           g_accessoryTransferData.accessoryCfgCtrlCount);
     if (ret != HDF_SUCCESS) {
         WM8904_CODEC_LOG_ERR("AudioAddControls failed.");
         return HDF_FAILURE;
@@ -370,30 +313,19 @@ int32_t AccessoryDevInit(struct AudioCard *audioCard, const struct AccessoryDevi
     return HDF_SUCCESS;
 }
 
-int32_t AccessoryAiaoDevReadReg(const struct AccessoryDevice *codec, uint32_t reg, uint32_t *val)
-{
-    return HDF_SUCCESS;
-}
-
-int32_t AccessoryAiaoDevWriteReg(const struct AccessoryDevice *codec, uint32_t reg, uint32_t value)
-{
-    return HDF_SUCCESS;
-}
-
-int32_t AccessoryDaiStart(const struct AudioCard *card, const struct DaiDevice *device)
+int32_t Wm8904DaiStart(const struct AudioCard *card, const struct DaiDevice *device)
 {
     (void)card;
     (void)device;
     return HDF_SUCCESS;
 }
 
-int32_t AccessoryDaiDevInit(struct AudioCard *card, const struct DaiDevice *device)
+int32_t Wm8904DaiDevInit(struct AudioCard *card, const struct DaiDevice *device)
 {
     if (device == NULL || device->devDaiName == NULL) {
         WM8904_CODEC_LOG_ERR("input para is NULL.");
         return HDF_FAILURE;
     }
-    WM8904_CODEC_LOG_DEBUG("codec dai device name: %s\n", device->devDaiName);
     (void)card;
     return HDF_SUCCESS;
 }
