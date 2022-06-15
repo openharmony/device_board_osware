@@ -10,7 +10,7 @@
 
 - [MILOS_Standard0]
 
-基于 NXP i.MX8M Mini处理器，1.8G Hz主频。接⼝外设丰富：LVDS显⽰、MIPI-DSI信号引出、 MIPI-CSI摄像头接⼝、⽀持⾳频输⼊输出、千兆⽹、多路USB、多串⼝、WIFI及蓝⽛模块等多种通信 接⼝；提供OpenHarmony系统。⼴泛应⽤于⾼性能仪器仪表（⼯业及医疗）、⼯业控制及⼈机互动装置、智能交通、智慧消防、智慧楼宇等领域。
+基于 NXP i.MX8M Mini处理器，1.8G Hz主频。接⼝外设丰富：LVDS显⽰、MIPI-DSI信号引出、 MIPI-CSI摄像头接⼝、⽀持⾳频输⼊输出、千兆⽹、多路USB、多串⼝、等多种通信 接⼝；提供OpenHarmony系统。⼴泛应⽤于⾼性能仪器仪表（⼯业及医疗）、⼯业控制及⼈机互动装置、智能交通、智慧消防、智慧楼宇等领域。
 
 #### 开发板架构图
 **![MILOS_Standard0开发板架构图](./imx8mm/common/figures/MILOS_Standard_0_Arch.png)**
