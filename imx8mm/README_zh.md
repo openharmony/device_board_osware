@@ -37,15 +37,11 @@ NXP iMX 8m mini采用四核64位Cortex-A53
 
 **三、开发板功能**
 
-**·** 工作温度：-40℃～105℃
+**·** 支持OpenHarmony所有原生应用，比如Camera，Audio等
 
-**·** 高性价比：适合中小规模企业/用户使用
+**·** 支持OpenHarmony硬件加速显示
 
-· 集成ROHM电源芯片及200PIN工业连接器
-
-· 核心板采用6层布线工艺，尺寸仅49mm×60mm，可满足小型终端产品空间需求
-
-· 支持多系统：支持OpenHarmony、Yocto Linux、Linux Ubuntu、Android等系统
+· 支持OpenHarmony 软总线等功能
 
 **四、开发板配件安装：**
 
@@ -67,11 +63,10 @@ OSware MILOS_Standard0开发板适用于智能NVR、云终端、物联网网关�
 
 安装命令如下：
 
-sudo apt-get update && sudo apt-get install binutils git git-lfs gnupg flex
-bison gperf build-essential zip curl zlib1g-dev gcc-multilib g++-multilib
-libc6-dev-i386 lib32ncurses5-dev x11proto-core-dev libx11-dev lib32z1-dev ccache
-libgl1-mesa-dev libxml2-utils xsltproc unzip m4 bc gnutls-bin python3.8
-python3-pip ruby
+    sudo apt-get update && sudo apt-get install binutils git git-lfs gnupg flex
+    bison gperf build-essential zip curl zlib1g-dev gcc-multilib g++-multilib
+    libc6-dev-i386 lib32ncurses5-dev x11proto-core-dev libx11-dev lib32z1-dev ccache
+    libgl1-mesa-dev libxml2-utils xsltproc unzip m4 bc gnutls-bin python3.8 python3-pip ruby
 
 **说明：** 
 以上安装命令适用于Ubuntu18.04，其他版本请根据安装包名称采用对应的安装命令。
