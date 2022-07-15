@@ -90,7 +90,7 @@ static int __WM8904I2cRead(DevHandle i2cHandle, uint16_t regaddr,
     return HDF_SUCCESS;
 }
 
-int WM8904RegRead(DevHandle i2cHandle, unsigned int reg, unsigned int *val , unsigned int dataLen)
+int WM8904RegRead(DevHandle i2cHandle, unsigned int reg, unsigned int *val, unsigned int dataLen)
 {
     int32_t ret;
     unsigned char regBuf[2] = {0};
@@ -100,7 +100,7 @@ int WM8904RegRead(DevHandle i2cHandle, unsigned int reg, unsigned int *val , uns
         return HDF_ERR_INVALID_OBJECT;
     }
 
-    if (2 == dataLen) {
+    if (dataLen == 2) {
         ret = __WM8904I2cRead(i2cHandle, reg, WM8904RegAddrLen, regBuf, dataLen);
         if (ret != HDF_SUCCESS) {
             WM8904_CODEC_LOG_ERR("WM8904RegSeqRead fail.");
@@ -108,7 +108,7 @@ int WM8904RegRead(DevHandle i2cHandle, unsigned int reg, unsigned int *val , uns
         }
         *val = 0;
         *val = (regBuf[0] << 8) | regBuf[1];
-    } else if (1 == dataLen) {
+    } else if (dataLen == 1) {
         ret = __WM8904I2cRead(i2cHandle, reg, WM8904RegAddrLen, regBuf, dataLen);
         if (ret != HDF_SUCCESS) {
             WM8904_CODEC_LOG_ERR("WM8904RegSeqRead fail.");
@@ -162,14 +162,14 @@ static int __WM8904I2cWrite(DevHandle i2cHandle, uint16_t regaddr,
     return HDF_SUCCESS;
 }
 
-int WM8904RegWrite(DevHandle i2cHandle, unsigned int reg, unsigned int val , unsigned int dataLen)
+int WM8904RegWrite(DevHandle i2cHandle, unsigned int reg, unsigned int val, unsigned int dataLen)
 {
     int32_t ret;
     unsigned char regBuf[2] = {0};
 
     WM8904_CODEC_LOG_DEBUG("entry");
 
-    if (2 == dataLen) {
+    if (dataLen == 2) {
         regBuf[0] = (val >> 8) & 0xFF;
         regBuf[1] =  val & 0xFF;
 
@@ -178,7 +178,7 @@ int WM8904RegWrite(DevHandle i2cHandle, unsigned int reg, unsigned int val , uns
             WM8904_CODEC_LOG_ERR("datalen=2 fail.");
             return HDF_FAILURE;
         }
-    } else if (1 == dataLen) {
+    } else if (dataLen == 1) {
         regBuf[0] = val;
         ret = __WM8904I2cWrite(i2cHandle, reg, WM8904RegAddrLen, regBuf, dataLen);
         if (ret != HDF_SUCCESS) {
@@ -197,15 +197,16 @@ int WM8904RegUpdateBits(DevHandle i2cHandle, unsigned int reg, unsigned int mask
 {
     unsigned int ret = 0, tmp = 0, orig = 0;
 
-    ret = WM8904RegRead(i2cHandle, reg, &orig , dataLen);
+    ret = WM8904RegRead(i2cHandle, reg, &orig, dataLen);
     if (ret != HDF_SUCCESS)
         return ret;
 
     tmp = orig & ~mask;
     tmp |= val & mask;
 
-    if (tmp != orig)
-        ret = WM8904RegWrite(i2cHandle, reg, tmp , dataLen);
+    if (tmp != orig) {
+        ret = WM8904RegWrite(i2cHandle, reg, tmp, dataLen);
+    }
     return ret;
 }
 
@@ -268,7 +269,7 @@ static const struct AudioKcontrol g_audioControls[] = {
         .Set = AudioCodecSetCtrlOps,
         .privateValue = (unsigned long)&g_audioRegParams,
     },
-    /* for sapm test*/
+    /* for sapm test */
     {
         .iface = AUDIODRV_CTL_ELEM_IFACE_DAC,
         .name = "Dacl enable",
@@ -300,7 +301,6 @@ int32_t Wm8904DevInit(struct AudioCard *audioCard, const struct CodecDevice *dev
     g_transferParam.i2cRegDataLen = WM8904_I2C_REG_DATA_LEN;
     device->devData->privateParam = &g_transferParam;
     ret = AudioAddControls(audioCard, device->devData->controls, device->devData->numControls);
-
     if (ret != HDF_SUCCESS) {
         WM8904_CODEC_LOG_ERR("AudioAddControls failed.");
         return HDF_FAILURE;

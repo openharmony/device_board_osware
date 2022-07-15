@@ -251,7 +251,6 @@ struct ieee80211_channel g_ap_ieee80211_channel;
 #define GET_DEV_CFG80211_WIRELESS(dev) ((struct wireless_dev*)((dev)->ieee80211Ptr))
 static int32_t SetupWireLessDev(struct NetDevice *netDev, struct WlanAPConf *apSettings)
 {
-
     if (netDev->ieee80211Ptr == NULL) {
         netDev->ieee80211Ptr = &g_ap_wireless_dev;
     }
@@ -389,7 +388,6 @@ int32_t WalSetTxPower(NetDevice *netDev, int32_t power)
     HDF_LOGE("%s: start...", __func__);
 
     retVal = (int32_t)wl_cfg80211_ops.set_tx_power(wiphy, wdev, NL80211_TX_POWER_FIXED, power);
-
     if (retVal < 0) {
         HDF_LOGE("%s: set_tx_power failed!", __func__);
     }
@@ -1131,7 +1129,6 @@ void ApMac80211Init(struct HdfChipDriver *chipDriver)
     chipDriver->staOps = &g_staOps;
     chipDriver->apOps = &g_apOps;
     chipDriver->p2pOps = &g_p2pOps;
-
 }
 
 EXPORT_SYMBOL(inform_bss_frame);

@@ -478,5 +478,8 @@ void upio_set(uint8_t pio, uint8_t action, uint8_t polarity)
         case UPIO_HOST_WAKE:
             UPIODBG("upio_set: UPIO_HOST_WAKE");
             break;
+        default:
+            // nothing to do
+            break;
     }
 }
