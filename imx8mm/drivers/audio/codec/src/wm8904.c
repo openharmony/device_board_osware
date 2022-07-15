@@ -658,6 +658,7 @@ int WM8904_SET_BIAS_LEVEL(enum snd_soc_bias_level level);
 int g_wm8904HwPara = 0;
 struct AudioPcmHwParams g_PcmParams = {0};
 #define FORMAT_HW  (16385)
+#define RATE_MULTIPLE (10)
 int Wm8904DaiHwParamsSet(const struct AudioCard *card, const struct AudioPcmHwParams *param)
 {
     int ret = 0, i = 0, best = 0, best_val = 0, cur_val = 0;
@@ -757,7 +758,7 @@ int Wm8904DaiHwParamsSet(const struct AudioCard *card, const struct AudioPcmHwPa
     best = 0;
     best_val = INT_MAX;
     for (i = 0; i < ARRAY_SIZE(bclk_divs); i++) {
-        cur_val = ((gpwm8904->sysclk_rate * 10) / bclk_divs[i].div)
+        cur_val = ((gpwm8904->sysclk_rate * RATE_MULTIPLE) / bclk_divs[i].div)
             - gpwm8904->bclk;
         if (cur_val < 0) { /* Table is sorted */
             break;
@@ -767,7 +768,7 @@ int Wm8904DaiHwParamsSet(const struct AudioCard *card, const struct AudioPcmHwPa
             best_val = cur_val;
         }
     }
-    gpwm8904->bclk = (gpwm8904->sysclk_rate * 10) / bclk_divs[best].div;
+    gpwm8904->bclk = (gpwm8904->sysclk_rate * RATE_MULTIPLE) / bclk_divs[best].div;
 
         WM8904_CODEC_LOG_DEBUG("Selected BCLK_DIV of %d for %dHz BCLK\n", bclk_divs[best].div, gpwm8904->bclk);
 
