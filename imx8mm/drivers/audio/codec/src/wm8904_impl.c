@@ -26,6 +26,10 @@
 #include "audio_core.h"
 #define WM8904_I2C_BUS_NUM (1)
 #define WM8904_I2C_REG_DATA_LEN  (2)
+
+#define DATA_LEN_1  (1)
+#define DATA_LEN_2  (2)
+
 DevHandle WM8904I2cOpen(void)
 {
     DevHandle i2cHandle;
@@ -100,7 +104,7 @@ int WM8904RegRead(DevHandle i2cHandle, unsigned int reg, unsigned int *val, unsi
         return HDF_ERR_INVALID_OBJECT;
     }
 
-    if (dataLen == 2) {
+    if (dataLen == DATA_LEN_2) {
         ret = __WM8904I2cRead(i2cHandle, reg, WM8904RegAddrLen, regBuf, dataLen);
         if (ret != HDF_SUCCESS) {
             WM8904_CODEC_LOG_ERR("WM8904RegSeqRead fail.");
@@ -108,7 +112,7 @@ int WM8904RegRead(DevHandle i2cHandle, unsigned int reg, unsigned int *val, unsi
         }
         *val = 0;
         *val = (regBuf[0] << 8) | regBuf[1];
-    } else if (dataLen == 1) {
+    } else if (dataLen == DATA_LEN_1) {
         ret = __WM8904I2cRead(i2cHandle, reg, WM8904RegAddrLen, regBuf, dataLen);
         if (ret != HDF_SUCCESS) {
             WM8904_CODEC_LOG_ERR("WM8904RegSeqRead fail.");
@@ -169,7 +173,7 @@ int WM8904RegWrite(DevHandle i2cHandle, unsigned int reg, unsigned int val, unsi
 
     WM8904_CODEC_LOG_DEBUG("entry");
 
-    if (dataLen == 2) {
+    if (dataLen == DATA_LEN_2) {
         regBuf[0] = (val >> 8) & 0xFF;
         regBuf[1] =  val & 0xFF;
 
@@ -178,7 +182,7 @@ int WM8904RegWrite(DevHandle i2cHandle, unsigned int reg, unsigned int val, unsi
             WM8904_CODEC_LOG_ERR("datalen=2 fail.");
             return HDF_FAILURE;
         }
-    } else if (dataLen == 1) {
+    } else if (dataLen == DATA_LEN_1) {
         regBuf[0] = val;
         ret = __WM8904I2cWrite(i2cHandle, reg, WM8904RegAddrLen, regBuf, dataLen);
         if (ret != HDF_SUCCESS) {

@@ -75,6 +75,9 @@ int32_t Wm8904DevInit(struct AudioCard *audioCard, const struct CodecDevice *dev
 #define BYTE_NUM_8      (8)
 #define OUT_PGA_90      (90)
 #define OUT_PGA_94      (94)
+#define NUM_256         (256)
+#define TIMEOUT_20      (20)
+#define TIMEOUT_500     (500)
 
 enum wm8904_type {
     WM8904,
@@ -243,7 +246,7 @@ int WM8904I2cAllRegDefautInit(DevHandle handle)
 int WM8904I2cAllRegDump(DevHandle handle)
 {
     int i = 0, val = 0;
-    for (i = 0; i < 256; i++) {
+    for (i = 0; i < NUM_256; i++) {
         WM8904RegRead(g_wm8904_i2c_handle, i, &val, BYTE_NUM);
         WM8904_CODEC_LOG_ERR("dump1_reg(0x%x) val=0x%x", i, val);
     }
@@ -496,14 +499,14 @@ int out_pga(int reg, int event)
 
                 WM8904RegWrite(g_wm8904_i2c_handle, WM8904_DC_SERVO_1, dcs_mask, BYTE_NUM);
 
-                timeout = 20;
+                timeout = TIMEOUT_20;
             } else {
                 WM8904_CODEC_LOG_DEBUG("Calibrating DC servo");
 
                 WM8904RegWrite(g_wm8904_i2c_handle, WM8904_DC_SERVO_1,
                     dcs_mask << WM8904_DCS_TRIG_STARTUP_0_SHIFT, BYTE_NUM);
 
-                timeout = 500;
+                timeout = TIMEOUT_500;
             }
 
             /* Wait for DC servo to complete */
@@ -654,6 +657,7 @@ static int WM8904_Set_Fmt(unsigned int fmt);
 int WM8904_SET_BIAS_LEVEL(enum snd_soc_bias_level level);
 int g_wm8904HwPara = 0;
 struct AudioPcmHwParams g_PcmParams = {0};
+#define FORMAT_HW  (16385)
 int Wm8904DaiHwParamsSet(const struct AudioCard *card, const struct AudioPcmHwParams *param)
 {
     int ret = 0, i = 0, best = 0, best_val = 0, cur_val = 0;
@@ -681,7 +685,7 @@ int Wm8904DaiHwParamsSet(const struct AudioCard *card, const struct AudioPcmHwPa
         dir = 0;
     }
 
-    WM8904_Set_Fmt(16385);
+    WM8904_Set_Fmt(FORMAT_HW);
     msleep(SLEEP_TIME_10);
     WM8904_Set_Sysclk(1, 0);
     msleep(SLEEP_TIME_10);
@@ -790,6 +794,7 @@ int Wm8904DaiHwParamsSet(const struct AudioCard *card, const struct AudioPcmHwPa
     return 0;
 }
 
+#define BITS_8  (8)
 int32_t Wm8904DaiTrigger(const struct AudioCard *audioCard, int cmd, const struct DaiDevice *dai)
 {
     WM8904_CODEC_LOG_ERR("cmd = %d ", cmd);
@@ -806,7 +811,7 @@ int32_t Wm8904DaiTrigger(const struct AudioCard *audioCard, int cmd, const struc
             msleep(SLEEP_TIME_120);
             WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_CLASS_W_0, 0xc, 0xc, BYTE_NUM);
             out_pga(OUT_PGA_90, BYTE_NUM_1);
-            WM8904RegRead(g_wm8904_i2c_handle, 90, &val, BYTE_NUM);
+            WM8904RegRead(g_wm8904_i2c_handle, OUT_PGA_90, &val, BYTE_NUM);
             msleep(SLEEP_TIME);
             out_pga(OUT_PGA_94, BYTE_NUM_1);
             msleep(SLEEP_TIME);
@@ -846,7 +851,7 @@ int32_t Wm8904DaiTrigger(const struct AudioCard *audioCard, int cmd, const struc
         case AUDIO_DRV_PCM_IOCTL_RENDER_PAUSE:
         case AUDIO_DRV_PCM_IOCTL_RENDER_STOP:
             /* code */
-            WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_DAC_DIGITAL_1, WM8904_DAC_MUTE, 8, BYTE_NUM);
+            WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_DAC_DIGITAL_1, WM8904_DAC_MUTE, BITS_8, BYTE_NUM);
             msleep(SLEEP_TIME);
             out_pga(OUT_PGA_90, BYTE_NUM_4);
             msleep(SLEEP_TIME);
