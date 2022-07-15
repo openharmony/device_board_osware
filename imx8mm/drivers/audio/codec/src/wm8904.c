@@ -36,8 +36,8 @@
 #include "gpio_if.h"
 #include "i2c_if.h"
 #include "audio_device_log.h"
-#include "wm8904.h"
 #include "wm8904_log.h"
+#include "wm8904.h"
 
 #include "audio_codec_base.h"
 #include "audio_core.h"
@@ -634,16 +634,16 @@ static struct {
 static int Frame_To_Bit_Width(enum AudioFormat format, int *bitWidth)
 {
     switch (format) {
-    case AUDIO_FORMAT_PCM_16_BIT:
-        *bitWidth = 16;
-        break;
-    case AUDIO_FORMAT_PCM_24_BIT:
-    case AUDIO_FORMAT_PCM_32_BIT:
-        *bitWidth = 32;
-        break;
-    default:
-        WM8904_CODEC_LOG_ERR("format: %d is not define", format);
-        return HDF_FAILURE;
+        case AUDIO_FORMAT_PCM_16_BIT:
+            *bitWidth = 16;
+            break;
+        case AUDIO_FORMAT_PCM_24_BIT:
+        case AUDIO_FORMAT_PCM_32_BIT:
+            *bitWidth = 32;
+            break;
+        default:
+            WM8904_CODEC_LOG_ERR("format: %d is not define", format);
+            return HDF_FAILURE;
     }
 
     return HDF_SUCCESS;
@@ -693,19 +693,19 @@ int Wm8904DaiHwParamsSet(const struct AudioCard *card, const struct AudioPcmHwPa
                          fs, width, slots, channel, gpwm8904->bclk);
 
     switch (width) {
-    case 16:
-        break;
-    case 20:
-        aif1 |= 0x40;
-        break;
-    case 24:
-        aif1 |= 0x80;
-        break;
-    case 32:
-        aif1 |= 0xc0;
-        break;
-    default:
-        return -EINVAL;
+        case 16:
+            break;
+        case 20:
+            aif1 |= 0x40;
+            break;
+        case 24:
+            aif1 |= 0x80;
+            break;
+        case 32:
+            aif1 |= 0xc0;
+            break;
+        default:
+            return -EINVAL;
     }
 
     ret = WM8904_Configure_Clocking();
@@ -893,7 +893,7 @@ int32_t Wm8904DaiTrigger(const struct AudioCard *audioCard, int cmd, const struc
             break;
         default:
             break;
-     }
+    }
     return HDF_SUCCESS;
 }
 
@@ -902,17 +902,17 @@ static int WM8904_Set_Sysclk(int clk_id, unsigned int freq)
     struct wm8904_priv *priv = gpwm8904;
 
     switch (clk_id) {
-    case WM8904_CLK_MCLK:
-        priv->sysclk_src = clk_id;
-        priv->mclk_rate = freq;
-        break;
+        case WM8904_CLK_MCLK:
+            priv->sysclk_src = clk_id;
+            priv->mclk_rate = freq;
+            break;
 
-    case WM8904_CLK_FLL:
-        priv->sysclk_src = clk_id;
-        break;
+        case WM8904_CLK_FLL:
+            priv->sysclk_src = clk_id;
+            break;
 
-    default:
-        return -EINVAL;
+        default:
+            return -EINVAL;
     }
 
     WM8904_CODEC_LOG_DEBUG("Clock source is %d at %uHz\n", clk_id, freq);
@@ -928,77 +928,77 @@ static int WM8904_Set_Fmt(unsigned int fmt)
     unsigned int aif3 = 0;
 
     switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
-    case SND_SOC_DAIFMT_CBS_CFS:
-        break;
-    case SND_SOC_DAIFMT_CBS_CFM:
-        aif3 |= WM8904_LRCLK_DIR;
-        break;
-    case SND_SOC_DAIFMT_CBM_CFS:
-        aif1 |= WM8904_BCLK_DIR;
-        break;
-    case SND_SOC_DAIFMT_CBM_CFM:
-        aif1 |= WM8904_BCLK_DIR;
-        aif3 |= WM8904_LRCLK_DIR;
-        break;
-    default:
-        return -EINVAL;
-    }
-
-    switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
-    case SND_SOC_DAIFMT_DSP_B:
-        aif1 |= 0x3 | WM8904_AIF_LRCLK_INV;
-        /* fall through */
-    case SND_SOC_DAIFMT_DSP_A:
-        aif1 |= 0x3;
-        break;
-    case SND_SOC_DAIFMT_I2S:
-        aif1 |= 0x2;
-        break;
-    case SND_SOC_DAIFMT_RIGHT_J:
-        break;
-    case SND_SOC_DAIFMT_LEFT_J:
-        aif1 |= 0x1;
-        break;
-    default:
-        return -EINVAL;
-    }
-
-    switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
-    case SND_SOC_DAIFMT_DSP_A:
-    case SND_SOC_DAIFMT_DSP_B:
-        /* frame inversion not valid for DSP modes */
-        switch (fmt & SND_SOC_DAIFMT_INV_MASK) {
-        case SND_SOC_DAIFMT_NB_NF:
+        case SND_SOC_DAIFMT_CBS_CFS:
             break;
-        case SND_SOC_DAIFMT_IB_NF:
-            aif1 |= WM8904_AIF_BCLK_INV;
+        case SND_SOC_DAIFMT_CBS_CFM:
+            aif3 |= WM8904_LRCLK_DIR;
+            break;
+        case SND_SOC_DAIFMT_CBM_CFS:
+            aif1 |= WM8904_BCLK_DIR;
+            break;
+        case SND_SOC_DAIFMT_CBM_CFM:
+            aif1 |= WM8904_BCLK_DIR;
+            aif3 |= WM8904_LRCLK_DIR;
             break;
         default:
             return -EINVAL;
-        }
-        break;
+    }
 
-    case SND_SOC_DAIFMT_I2S:
-    case SND_SOC_DAIFMT_RIGHT_J:
-    case SND_SOC_DAIFMT_LEFT_J:
-        switch (fmt & SND_SOC_DAIFMT_INV_MASK) {
-        case SND_SOC_DAIFMT_NB_NF:
+    switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
+        case SND_SOC_DAIFMT_DSP_B:
+            aif1 |= 0x3 | WM8904_AIF_LRCLK_INV;
+            /* fall through */
+        case SND_SOC_DAIFMT_DSP_A:
+            aif1 |= 0x3;
             break;
-        case SND_SOC_DAIFMT_IB_IF:
-            aif1 |= WM8904_AIF_BCLK_INV | WM8904_AIF_LRCLK_INV;
+        case SND_SOC_DAIFMT_I2S:
+            aif1 |= 0x2;
             break;
-        case SND_SOC_DAIFMT_IB_NF:
-            aif1 |= WM8904_AIF_BCLK_INV;
+        case SND_SOC_DAIFMT_RIGHT_J:
             break;
-        case SND_SOC_DAIFMT_NB_IF:
-            aif1 |= WM8904_AIF_LRCLK_INV;
+        case SND_SOC_DAIFMT_LEFT_J:
+            aif1 |= 0x1;
             break;
         default:
             return -EINVAL;
-        }
-        break;
-    default:
-        return -EINVAL;
+    }
+
+    switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
+        case SND_SOC_DAIFMT_DSP_A:
+        case SND_SOC_DAIFMT_DSP_B:
+            /* frame inversion not valid for DSP modes */
+            switch (fmt & SND_SOC_DAIFMT_INV_MASK) {
+                case SND_SOC_DAIFMT_NB_NF:
+                    break;
+                case SND_SOC_DAIFMT_IB_NF:
+                    aif1 |= WM8904_AIF_BCLK_INV;
+                    break;
+                default:
+                    return -EINVAL;
+            }
+            break;
+
+        case SND_SOC_DAIFMT_I2S:
+        case SND_SOC_DAIFMT_RIGHT_J:
+        case SND_SOC_DAIFMT_LEFT_J:
+            switch (fmt & SND_SOC_DAIFMT_INV_MASK) {
+                case SND_SOC_DAIFMT_NB_NF:
+                    break;
+                case SND_SOC_DAIFMT_IB_IF:
+                    aif1 |= WM8904_AIF_BCLK_INV | WM8904_AIF_LRCLK_INV;
+                    break;
+                case SND_SOC_DAIFMT_IB_NF:
+                    aif1 |= WM8904_AIF_BCLK_INV;
+                    break;
+                case SND_SOC_DAIFMT_NB_IF:
+                    aif1 |= WM8904_AIF_LRCLK_INV;
+                    break;
+                default:
+                    return -EINVAL;
+            }
+            break;
+        default:
+            return -EINVAL;
     }
 
     WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_AUDIO_INTERFACE_1,
@@ -1090,75 +1090,75 @@ int WM8904_SET_BIAS_LEVEL(enum snd_soc_bias_level level)
     int ret = 0;
 
     switch (level) {
-    case SND_SOC_BIAS_ON:
-        WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_ANALOGUE_LEFT_INPUT_1,
-                            WM8904_L_MODE_MASK, 0x01, BYTE_NUM);
-        WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_ANALOGUE_RIGHT_INPUT_1,
-                            WM8904_R_MODE_MASK, 0x01, BYTE_NUM);
-        WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_MIC_BIAS_CONTROL_0,
-                            WM8904_MIC_DET_EINT, 0x01, BYTE_NUM);
-        g_cur_bias_level = SND_SOC_BIAS_STANDBY;
-        break;
-    case SND_SOC_BIAS_PREPARE:
-        /* VMID resistance BYTE_NUM*50k */
-        WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_VMID_CONTROL_0,
-                            WM8904_VMID_RES_MASK,
-                            0x1 << WM8904_VMID_RES_SHIFT, BYTE_NUM);
+        case SND_SOC_BIAS_ON:
+            WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_ANALOGUE_LEFT_INPUT_1,
+                                WM8904_L_MODE_MASK, 0x01, BYTE_NUM);
+            WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_ANALOGUE_RIGHT_INPUT_1,
+                                WM8904_R_MODE_MASK, 0x01, BYTE_NUM);
+            WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_MIC_BIAS_CONTROL_0,
+                                WM8904_MIC_DET_EINT, 0x01, BYTE_NUM);
+            g_cur_bias_level = SND_SOC_BIAS_STANDBY;
+            break;
+        case SND_SOC_BIAS_PREPARE:
+            /* VMID resistance BYTE_NUM*50k */
+            WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_VMID_CONTROL_0,
+                                WM8904_VMID_RES_MASK,
+                                0x1 << WM8904_VMID_RES_SHIFT, BYTE_NUM);
 
-        /* Normal bias current */
-        WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_BIAS_CONTROL_0,
-            WM8904_ISEL_MASK, BYTE_NUM << WM8904_ISEL_SHIFT, BYTE_NUM);
-            g_cur_bias_level = SND_SOC_BIAS_PREPARE;
-        break;
+            /* Normal bias current */
+            WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_BIAS_CONTROL_0,
+                WM8904_ISEL_MASK, BYTE_NUM << WM8904_ISEL_SHIFT, BYTE_NUM);
+                g_cur_bias_level = SND_SOC_BIAS_PREPARE;
+            break;
 
-    case SND_SOC_BIAS_STANDBY:
-        if (g_cur_bias_level == SND_SOC_BIAS_OFF) {
-            ret = regulator_bulk_enable(ARRAY_SIZE(gpwm8904->supplies),
-                                        gpwm8904->supplies);
-            if (ret != 0) {
-                WM8904_CODEC_LOG_ERR("Failed to enable supplies: %d", ret);
-                return ret;
+        case SND_SOC_BIAS_STANDBY:
+            if (g_cur_bias_level == SND_SOC_BIAS_OFF) {
+                ret = regulator_bulk_enable(ARRAY_SIZE(gpwm8904->supplies),
+                                            gpwm8904->supplies);
+                if (ret != 0) {
+                    WM8904_CODEC_LOG_ERR("Failed to enable supplies: %d", ret);
+                    return ret;
+                }
+
+                /* Enable bias */
+                WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_BIAS_CONTROL_0,
+                                    WM8904_BIAS_ENA, WM8904_BIAS_ENA, BYTE_NUM);
+                /* Enable VMID, VMID buffering, 2*5k resistance */
+                WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_VMID_CONTROL_0,
+                                    WM8904_VMID_ENA |
+                                    WM8904_VMID_RES_MASK,
+                                    WM8904_VMID_ENA |
+                                    (0x3 << WM8904_VMID_RES_SHIFT), BYTE_NUM);
+                /* Let VMID ramp */
+                msleep(SLEEP_TIME_1);
             }
 
-            /* Enable bias */
-            WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_BIAS_CONTROL_0,
-                                WM8904_BIAS_ENA, WM8904_BIAS_ENA, BYTE_NUM);
-            /* Enable VMID, VMID buffering, 2*5k resistance */
+            /* Maintain VMID with 2*250k */
             WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_VMID_CONTROL_0,
-                                WM8904_VMID_ENA |
                                 WM8904_VMID_RES_MASK,
-                                WM8904_VMID_ENA |
-                                (0x3 << WM8904_VMID_RES_SHIFT), BYTE_NUM);
-            /* Let VMID ramp */
-            msleep(SLEEP_TIME_1);
-        }
+                                (0x2 << WM8904_VMID_RES_SHIFT), BYTE_NUM);
 
-        /* Maintain VMID with 2*250k */
-        WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_VMID_CONTROL_0,
-                            WM8904_VMID_RES_MASK,
-                            (0x2 << WM8904_VMID_RES_SHIFT), BYTE_NUM);
+            /* Bias current *0.5 */
+            WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_BIAS_CONTROL_0,
+                                WM8904_ISEL_MASK, 0, BYTE_NUM);
+            g_cur_bias_level = SND_SOC_BIAS_STANDBY;
 
-        /* Bias current *0.5 */
-        WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_BIAS_CONTROL_0,
-                            WM8904_ISEL_MASK, 0, BYTE_NUM);
-        g_cur_bias_level = SND_SOC_BIAS_STANDBY;
+            break;
 
-        break;
+        case SND_SOC_BIAS_OFF:
+            /* Turn off VMID */
+            WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_VMID_CONTROL_0,
+                                (WM8904_VMID_RES_MASK | WM8904_VMID_ENA), 0, BYTE_NUM);
 
-    case SND_SOC_BIAS_OFF:
-        /* Turn off VMID */
-        WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_VMID_CONTROL_0,
-                            (WM8904_VMID_RES_MASK | WM8904_VMID_ENA), 0, BYTE_NUM);
+            /* Stop bias generation */
+            WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_BIAS_CONTROL_0,
+                                WM8904_BIAS_ENA, 0, BYTE_NUM);
 
-        /* Stop bias generation */
-        WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_BIAS_CONTROL_0,
-                            WM8904_BIAS_ENA, 0, BYTE_NUM);
-
-        regulator_bulk_disable(ARRAY_SIZE(gpwm8904->supplies),
-                               gpwm8904->supplies);
-        clk_disable_unprepare(gpwm8904->mclk);
-        g_cur_bias_level = SND_SOC_BIAS_OFF;
-        break;
+            regulator_bulk_disable(ARRAY_SIZE(gpwm8904->supplies),
+                                gpwm8904->supplies);
+            clk_disable_unprepare(gpwm8904->mclk);
+            g_cur_bias_level = SND_SOC_BIAS_OFF;
+            break;
     }
     return 0;
 }
