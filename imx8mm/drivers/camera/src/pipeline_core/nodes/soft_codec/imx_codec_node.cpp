@@ -80,7 +80,7 @@ void yuvtorgb(int y, int u, int v, int sign, unsigned char *pixel32)
 
     if (sign) {
         ruv = static_cast<long int>(val_num_1159 * (v - val_num_128));
-        guv = static_cast<long int>(val_num_380 * (u - val_num_128) + 
+        guv = static_cast<long int>(val_num_380 * (u - val_num_128) +
             val_num_813 * (v - val_num_128));
         buv = static_cast<long int>(val_num_2018 * (u - val_num_128));
     }
