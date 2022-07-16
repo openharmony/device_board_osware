@@ -84,6 +84,20 @@ ohos_copy("flash.bin") {
   outputs = [ "$root_build_dir/packages/phone/images/flash.bin" ]
 }
 
+ohos_prebuilt_etc("imx_sdma_ko") {
+  source = "//device/board/osware/imx8mm/common/firmware/imx-sdma.ko"
+  module_install_dir = "./etc/imx_sdma"
+  install_images = [ "system" ]
+  part_name = "osware_products"
+}
+
+ohos_prebuilt_etc("ov5640_camera_mipi_v2_ko") {
+  source = "//device/board/osware/imx8mm/common/firmware/ov5640_camera_mipi_v2.ko"
+  module_install_dir = "./etc/imx_camera"
+  install_images = [ "system" ]
+  part_name = "osware_products"
+}
+
 #****************************************************
 #wifi firmware
 #****************************************************
@@ -138,5 +152,7 @@ group("init_configs") {
     ":firmware_a_nvram",
     ":firmware_p2p_bin",
     ":firmware_apsta_bin",
+    ":imx_sdma_ko",
+    ":ov5640_camera_mipi_v2_ko"
   ]
 }

@@ -26,25 +26,19 @@ pushd ${1}
 ./kernel_module_build.sh ${2} ${4} ${5} ${6} ${7} ${8}
 mkdir -p ${3}
 rm -rf ${3}/../../../kernel.timestamp
-cp ${2}/kernel/src_tmp/${8}/arch/arm64/boot/Image ${3}/Image
-if [ -d ${3}/dtb ];then
-    echo "${3}/dtb existed!"
+if [ -d ${3}/kernel ];then
+    echo "${3}/kernel existed!"
+    cd ${3}/kernel
+    rm -rf *
+    cd -
 else
-    mkdir -p ${3}/dtb
-fi
-cp ${2}/kernel/src_tmp/${8}/arch/arm64/boot/dts/myir/*.dtb ${3}/dtb
-
-if [ -d ${3}/../../phone/system/etc/imx_sdma ];then
-    echo "${3}/../../phone/system/etc/imx_sdma existed!"
-else
-    mkdir -p ${3}/../../phone/system/etc/imx_sdma
+    mkdir -p ${3}/kernel
 fi
 
-if [ -d ${3}/../../phone/system/etc/imx_camera ];then
-    echo "${3}/../../phone/system/etc/imx_camera existed!"
-else
-    mkdir -p ${3}/../../phone/system/etc/imx_camera
-fi
-cp ${2}/kernel/src_tmp/${8}/TEST/lib/modules/5.10.72/kernel/drivers/dma/imx-sdma.ko ${3}/../../phone/system/etc/imx_sdma
-cp ${2}/kernel/src_tmp/${8}/TEST/lib/modules/5.10.72/kernel/drivers/media/platform/mxc/capture/ov5640_camera_mipi_v2.ko ${3}/../../phone/system/etc/imx_camera
+cp ${2}/kernel/src_tmp/${8}/arch/arm64/boot/Image ${3}/kernel/Image
+
+mkdir -p ${3}/kernel/dtb
+cp ${2}/kernel/src_tmp/${8}/arch/arm64/boot/dts/myir/*.dtb ${3}/kernel/dtb
+
+cp -rf ./mkbootimg.sh ${3}/kernel
 popd

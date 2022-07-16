@@ -73,7 +73,7 @@ Note:If the text contains special characters, please escape them according to th
                 <filteritem type="filepath" name="imx8mm/common/rootfs/fstab.required" desc=""/>
             </filefilter>
             <filefilter name="binaryFileTypePolicyFilter" desc="Filters for binary file policies">
-                <filteritem type="filename" name="*.png" desc="Picture of firmware burning"/>
+                <filteritem type="filename" name="*.png |*.ko" desc="Picture of firmware burning"/>
                 <filteritem type="filepath" name="imx8mm/loader/flash.bin" desc=""/>
                 <filteritem type="filepath" name="imx8mm/drivers/wifi/firmware/bcm43438a1.hcd" desc=""/>
                 <filteritem type="filepath" name="imx8mm/drivers/wifi/firmware/fw_bcm43438a1.bin" desc=""/>

@@ -76,7 +76,7 @@ RetCode IMXCodecNode::Flush(const int32_t streamId)
 void yuvtorgb(int y, int u, int v, int sign, unsigned char *pixel32)
 {
     int r, g, b, a;
-    static long int ruv, guv, buv;
+    static long long ruv, guv, buv;
 
     if (sign) {
         ruv = val_num_1159 * (v - val_num_128);
@@ -121,7 +121,7 @@ void IMXCodecNode::Yuv422ToRGBA8888(std::shared_ptr<IBuffer>& buffer)
     unsigned int in, out;
     int y0, u, y1, v;
     unsigned int pixel32;
-    unsigned char *pixel = (unsigned char *)&pixel32;
+    unsigned char *pixel = reinterpret_cast<unsigned char *>(&pixel32);
     int ret = 0;
     unsigned char *temp = nullptr;
     unsigned char *yuyv = nullptr;
