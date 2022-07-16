@@ -37,8 +37,8 @@
 #include "audio_driver_log.h"
 #include "imx8mm_platform.h"
 #include "imx8mm_common.h"
-#include "sai_driver.h"
 #include "osal_mem.h"
+#include "sai_driver.h"
 
 #include "osal_io.h"
 #include "osal_irq.h"
@@ -208,7 +208,7 @@ static irqreturn_t fsl_sai_isr(int irq, void *devid)
     }
 
     if (flags & FSL_SAI_CSR_FEF) {
-       AUDIO_DRIVER_LOG_ERR("isr: Transmit underrun detected\n");
+        AUDIO_DRIVER_LOG_ERR("isr: Transmit underrun detected\n");
         /* FIFO reset for safety */
         xcsr |= FSL_SAI_CSR_FR;
     }
@@ -317,47 +317,47 @@ static bool fsl_sai_readable_reg(struct device *dev, unsigned int reg)
     }
 
     switch (reg) {
-    case FSL_SAI_TFR0:
-    case FSL_SAI_TFR1:
-    case FSL_SAI_TFR2:
-    case FSL_SAI_TFR3:
-    case FSL_SAI_TFR4:
-    case FSL_SAI_TFR5:
-    case FSL_SAI_TFR6:
-    case FSL_SAI_TFR7:
-    case FSL_SAI_TMR:
-    case FSL_SAI_RDR0:
-    case FSL_SAI_RDR1:
-    case FSL_SAI_RDR2:
-    case FSL_SAI_RDR3:
-    case FSL_SAI_RDR4:
-    case FSL_SAI_RDR5:
-    case FSL_SAI_RDR6:
-    case FSL_SAI_RDR7:
-    case FSL_SAI_RFR0:
-    case FSL_SAI_RFR1:
-    case FSL_SAI_RFR2:
-    case FSL_SAI_RFR3:
-    case FSL_SAI_RFR4:
-    case FSL_SAI_RFR5:
-    case FSL_SAI_RFR6:
-    case FSL_SAI_RFR7:
-    case FSL_SAI_RMR:
-    case FSL_SAI_MCTL:
-    case FSL_SAI_MDIV:
-    case FSL_SAI_VERID:
-    case FSL_SAI_PARAM:
-    case FSL_SAI_TTCTN:
-    case FSL_SAI_RTCTN:
-    case FSL_SAI_TTCTL:
-    case FSL_SAI_TBCTN:
-    case FSL_SAI_TTCAP:
-    case FSL_SAI_RTCTL:
-    case FSL_SAI_RBCTN:
-    case FSL_SAI_RTCAP:
-        return true;
-    default:
-        return false;
+        case FSL_SAI_TFR0:
+        case FSL_SAI_TFR1:
+        case FSL_SAI_TFR2:
+        case FSL_SAI_TFR3:
+        case FSL_SAI_TFR4:
+        case FSL_SAI_TFR5:
+        case FSL_SAI_TFR6:
+        case FSL_SAI_TFR7:
+        case FSL_SAI_TMR:
+        case FSL_SAI_RDR0:
+        case FSL_SAI_RDR1:
+        case FSL_SAI_RDR2:
+        case FSL_SAI_RDR3:
+        case FSL_SAI_RDR4:
+        case FSL_SAI_RDR5:
+        case FSL_SAI_RDR6:
+        case FSL_SAI_RDR7:
+        case FSL_SAI_RFR0:
+        case FSL_SAI_RFR1:
+        case FSL_SAI_RFR2:
+        case FSL_SAI_RFR3:
+        case FSL_SAI_RFR4:
+        case FSL_SAI_RFR5:
+        case FSL_SAI_RFR6:
+        case FSL_SAI_RFR7:
+        case FSL_SAI_RMR:
+        case FSL_SAI_MCTL:
+        case FSL_SAI_MDIV:
+        case FSL_SAI_VERID:
+        case FSL_SAI_PARAM:
+        case FSL_SAI_TTCTN:
+        case FSL_SAI_RTCTN:
+        case FSL_SAI_TTCTL:
+        case FSL_SAI_TBCTN:
+        case FSL_SAI_TTCAP:
+        case FSL_SAI_RTCTL:
+        case FSL_SAI_RBCTN:
+        case FSL_SAI_RTCAP:
+            return true;
+        default:
+            return false;
     }
 }
 
@@ -376,33 +376,33 @@ static bool fsl_sai_volatile_reg(struct device *dev, unsigned int reg)
     }
 
     switch (reg) {
-    case FSL_SAI_TFR0:
-    case FSL_SAI_TFR1:
-    case FSL_SAI_TFR2:
-    case FSL_SAI_TFR3:
-    case FSL_SAI_TFR4:
-    case FSL_SAI_TFR5:
-    case FSL_SAI_TFR6:
-    case FSL_SAI_TFR7:
-    case FSL_SAI_RFR0:
-    case FSL_SAI_RFR1:
-    case FSL_SAI_RFR2:
-    case FSL_SAI_RFR3:
-    case FSL_SAI_RFR4:
-    case FSL_SAI_RFR5:
-    case FSL_SAI_RFR6:
-    case FSL_SAI_RFR7:
-    case FSL_SAI_RDR0:
-    case FSL_SAI_RDR1:
-    case FSL_SAI_RDR2:
-    case FSL_SAI_RDR3:
-    case FSL_SAI_RDR4:
-    case FSL_SAI_RDR5:
-    case FSL_SAI_RDR6:
-    case FSL_SAI_RDR7:
-        return true;
-    default:
-        return false;
+        case FSL_SAI_TFR0:
+        case FSL_SAI_TFR1:
+        case FSL_SAI_TFR2:
+        case FSL_SAI_TFR3:
+        case FSL_SAI_TFR4:
+        case FSL_SAI_TFR5:
+        case FSL_SAI_TFR6:
+        case FSL_SAI_TFR7:
+        case FSL_SAI_RFR0:
+        case FSL_SAI_RFR1:
+        case FSL_SAI_RFR2:
+        case FSL_SAI_RFR3:
+        case FSL_SAI_RFR4:
+        case FSL_SAI_RFR5:
+        case FSL_SAI_RFR6:
+        case FSL_SAI_RFR7:
+        case FSL_SAI_RDR0:
+        case FSL_SAI_RDR1:
+        case FSL_SAI_RDR2:
+        case FSL_SAI_RDR3:
+        case FSL_SAI_RDR4:
+        case FSL_SAI_RDR5:
+        case FSL_SAI_RDR6:
+        case FSL_SAI_RDR7:
+            return true;
+        default:
+            return false;
     }
 }
 
@@ -420,23 +420,23 @@ static bool fsl_sai_writeable_reg(struct device *dev, unsigned int reg)
     }
 
     switch (reg) {
-    case FSL_SAI_TDR0:
-    case FSL_SAI_TDR1:
-    case FSL_SAI_TDR2:
-    case FSL_SAI_TDR3:
-    case FSL_SAI_TDR4:
-    case FSL_SAI_TDR5:
-    case FSL_SAI_TDR6:
-    case FSL_SAI_TDR7:
-    case FSL_SAI_TMR:
-    case FSL_SAI_RMR:
-    case FSL_SAI_MCTL:
-    case FSL_SAI_MDIV:
-    case FSL_SAI_TTCTL:
-    case FSL_SAI_RTCTL:
-        return true;
-    default:
-        return false;
+        case FSL_SAI_TDR0:
+        case FSL_SAI_TDR1:
+        case FSL_SAI_TDR2:
+        case FSL_SAI_TDR3:
+        case FSL_SAI_TDR4:
+        case FSL_SAI_TDR5:
+        case FSL_SAI_TDR6:
+        case FSL_SAI_TDR7:
+        case FSL_SAI_TMR:
+        case FSL_SAI_RMR:
+        case FSL_SAI_MCTL:
+        case FSL_SAI_MDIV:
+        case FSL_SAI_TTCTL:
+        case FSL_SAI_RTCTL:
+            return true;
+        default:
+            return false;
     }
 }
 
@@ -454,17 +454,20 @@ static const struct regmap_config fsl_sai_regmap_config = {
     .cache_type = REGCACHE_FLAT,
 };
 
+#define OFFSET_7 (7)
+#define OFFSET_8 (8)
 static unsigned int fsl_sai_calc_dl_off(unsigned long dl_mask)
 {
     int fbidx = 0, nbidx = 0, offset = 0;
 
-    fbidx = find_first_bit(&dl_mask, 8);
-    nbidx = find_next_bit(&dl_mask, 8, fbidx + 1);
+    fbidx = find_first_bit(&dl_mask, OFFSET_8);
+    nbidx = find_next_bit(&dl_mask, OFFSET_8, fbidx + 1);
     offset = nbidx - fbidx - 1;
 
-    return (offset < 0 || offset >= 7 ? 0 : offset);
+    return (offset < 0 || offset >= OFFSET_7 ? 0 : offset);
 }
 
+#define ELEMS_3  (3)
 static int fsl_sai_read_dlcfg(struct platform_device *pdev, char *pn,
                               struct fsl_sai_dl_cfg **rcfg, unsigned int soc_dl)
 {
@@ -476,19 +479,18 @@ static int fsl_sai_read_dlcfg(struct platform_device *pdev, char *pn,
     *rcfg = NULL;
 
     elems = of_property_count_u32_elems(np, pn);
-
     /* consider default value "0 0x1 0x1" if property is missing */
     if (elems <= 0) {
-        elems = 3;
+        elems = ELEMS_3;
     }
 
-    if (elems % 3) {
+    if (elems % ELEMS_3) {
         AUDIO_DRIVER_LOG_ERR(
             "Number of elements in %s must be divisible to 3.\n", pn);
         return -EINVAL;
     }
 
-    num_cfg = elems / 3;
+    num_cfg = elems / ELEMS_3;
     cfg = devm_kzalloc(&pdev->dev, num_cfg * sizeof(*cfg), GFP_KERNEL);
     if (cfg == NULL) {
         AUDIO_DRIVER_LOG_ERR("Cannot allocate memory for %s.\n", pn);
@@ -514,7 +516,7 @@ static int fsl_sai_read_dlcfg(struct platform_device *pdev, char *pn,
         if ((rx & ~soc_dl) || (tx & ~soc_dl)) {
             AUDIO_DRIVER_LOG_ERR(
                 "%s: dataline cfg[%d] setting error, mask is 0x%x\n",
-                 pn, i, soc_dl);
+                pn, i, soc_dl);
             return -EINVAL;
         }
 
@@ -581,6 +583,10 @@ static int fsl_sai_check_ver(struct fsl_sai *sai, struct device *dev)
     return HDF_SUCCESS;
 }
 
+#define RATIO_1  (1)
+#define RATIO_2  (2)
+#define RATIO_512  (512)
+#define RATE_1000  (1000)
 static int fsl_sai_set_bclk(struct fsl_sai *sai, bool tx, u32 freq)
 {
     unsigned char offset = sai->reg_offset;
@@ -601,7 +607,9 @@ static int fsl_sai_set_bclk(struct fsl_sai *sai, bool tx, u32 freq)
             continue;
         }
 
-        ratio = clk_rate / freq;
+        if (freq != 0) {
+            ratio = clk_rate / freq;
+        }
 
         ret = clk_rate - ratio * freq;
 
@@ -611,15 +619,15 @@ static int fsl_sai_set_bclk(struct fsl_sai *sai, bool tx, u32 freq)
          * Drop the source that can not be
          * divided into the required rate.
          */
-        if (ret != 0 && clk_rate / ret < 1000) {
+        if (ret != 0 && clk_rate / ret < RATE_1000) {
             continue;
         }
 
         AUDIO_DRIVER_LOG_ERR("ratio %d for freq %dHz based on clock %ldHz\n",
                              ratio, freq, clk_rate);
 
-        if ((ratio % 2 == 0 && ratio >= 2 && ratio <= 512) ||
-            (ratio == 1 && sai->verid.id >= FSL_SAI_VERID_0301)) {
+        if ((ratio % RATIO_2 == 0 && ratio >= RATIO_2 && ratio <= RATIO_512) ||
+            (ratio == RATIO_1 && sai->verid.id >= FSL_SAI_VERID_0301)) {
             if (ret < savesub) {
                 saveratio = ratio;
                 sai->mclk_id[tx] = id;
@@ -656,14 +664,14 @@ static int fsl_sai_set_bclk(struct fsl_sai *sai, bool tx, u32 freq)
 
     if (reg) {
         regmap_update_bits(sai->regmap, reg, FSL_SAI_CR2_MSEL_MASK,
-               FSL_SAI_CR2_MSEL(sai->mclk_id[tx]));
+            FSL_SAI_CR2_MSEL(sai->mclk_id[tx]));
 
         savediv = (saveratio == 1 ? 0 : (saveratio >> 1) - 1);
         regmap_update_bits(sai->regmap, reg, FSL_SAI_CR2_DIV_MASK, savediv);
 
         if (sai->verid.id >= FSL_SAI_VERID_0301) {
             regmap_update_bits(sai->regmap, reg, FSL_SAI_CR2_BYP,
-                   (saveratio == 1 ? FSL_SAI_CR2_BYP : 0));
+                (saveratio == 1 ? FSL_SAI_CR2_BYP : 0));
         }
     }
 
@@ -831,7 +839,7 @@ int32_t SaiSetHwParams(const struct PlatformData *pd, const enum AudioStreamType
         return -EINVAL;
     }
 
-    /*find a proper tcre setting*/
+    /* find a proper tcre setting */
     for (i = 0; i < 8; i++) {
         trce_mask = (1 << (i + 1)) - 1;
         if (__sw_hweight8(dl_cfg[dl_cfg_idx].mask[tx] & trce_mask) == pins) {
@@ -840,18 +848,20 @@ int32_t SaiSetHwParams(const struct PlatformData *pd, const enum AudioStreamType
     }
 
     regmap_update_bits(sai->regmap, FSL_SAI_xCR3(tx, offset),
-           FSL_SAI_CR3_TRCE_MASK,
-           FSL_SAI_CR3_TRCE((dl_cfg[dl_cfg_idx].mask[tx] & trce_mask)));
+        FSL_SAI_CR3_TRCE_MASK,
+        FSL_SAI_CR3_TRCE((dl_cfg[dl_cfg_idx].mask[tx] & trce_mask)));
 
     regmap_update_bits(sai->regmap, FSL_SAI_xCR4(tx, offset),
-               FSL_SAI_CR4_SYWD_MASK | FSL_SAI_CR4_FRSZ_MASK |
-               FSL_SAI_CR4_CHMOD_MASK,
-               val_cr4);
+        FSL_SAI_CR4_SYWD_MASK | FSL_SAI_CR4_FRSZ_MASK |
+        FSL_SAI_CR4_CHMOD_MASK,
+        val_cr4);
+
     regmap_update_bits(sai->regmap, FSL_SAI_xCR5(tx, offset),
-               FSL_SAI_CR5_WNW_MASK | FSL_SAI_CR5_W0W_MASK |
-               FSL_SAI_CR5_FBT_MASK, val_cr5);
+        FSL_SAI_CR5_WNW_MASK | FSL_SAI_CR5_W0W_MASK |
+        FSL_SAI_CR5_FBT_MASK, val_cr5);
+
     regmap_write(sai->regmap, FSL_SAI_xMR(tx),
-            ~0UL - ((1 << min(channels, slots)) - 1));
+        ~0UL - ((1 << min(channels, slots)) - 1));
 
     return HDF_SUCCESS;
 }
@@ -879,24 +889,24 @@ static int32_t SaiSetSysclkTr(struct fsl_sai *sai, int clk_id, unsigned int freq
 
     offset = sai->reg_offset;
     switch (clk_id) {
-    case FSL_SAI_CLK_BUS:
-        val_cr2 |= FSL_SAI_CR2_MSEL_BUS;
-        break;
-    case FSL_SAI_CLK_MAST1:
-        val_cr2 |= FSL_SAI_CR2_MSEL_MCLK1;
-        break;
-    case FSL_SAI_CLK_MAST2:
-        val_cr2 |= FSL_SAI_CR2_MSEL_MCLK2;
-        break;
-    case FSL_SAI_CLK_MAST3:
-        val_cr2 |= FSL_SAI_CR2_MSEL_MCLK3;
-        break;
-    default:
-        return -EINVAL;
+        case FSL_SAI_CLK_BUS:
+            val_cr2 |= FSL_SAI_CR2_MSEL_BUS;
+            break;
+        case FSL_SAI_CLK_MAST1:
+            val_cr2 |= FSL_SAI_CR2_MSEL_MCLK1;
+            break;
+        case FSL_SAI_CLK_MAST2:
+            val_cr2 |= FSL_SAI_CR2_MSEL_MCLK2;
+            break;
+        case FSL_SAI_CLK_MAST3:
+            val_cr2 |= FSL_SAI_CR2_MSEL_MCLK3;
+            break;
+        default:
+            return -EINVAL;
     }
 
     regmap_update_bits(sai->regmap, FSL_SAI_xCR2(tx, offset),
-                      FSL_SAI_CR2_MSEL_MASK, val_cr2);
+                       FSL_SAI_CR2_MSEL_MASK, val_cr2);
 
     return HDF_SUCCESS;
 }
@@ -974,14 +984,12 @@ int32_t SaiSetSysclk(const struct PlatformData *pd, int clk_id, unsigned int fre
     }
 
     ret = SaiSetSysclkTr(sai, clk_id, freq, FSL_FMT_TRANSMITTER);
-
     if (ret) {
         AUDIO_DRIVER_LOG_ERR("cannot set tx sysclk");
         return HDF_FAILURE;
     }
 
     ret = SaiSetSysclkTr(sai, clk_id, freq, FSL_FMT_RECEIVER);
-
     if (ret) {
         AUDIO_DRIVER_LOG_ERR("cannot set rx sysclk");
         return HDF_FAILURE;
@@ -1015,95 +1023,95 @@ static int32_t SaiSetDaiFmtTr(struct PrivPlatformData *ppd, unsigned int fmt, in
 
     /* DAI mode */
     switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
-    case SND_SOC_DAIFMT_I2S:
-        /*
-         * Frame low, 1clk before data, one word length for frame sync,
-         * frame sync starts one serial clock cycle earlier,
-         * that is, together with the last bit of the previous
-         * data word.
-         */
-        val_cr2 |= FSL_SAI_CR2_BCP;
-        val_cr4 |= FSL_SAI_CR4_FSE | FSL_SAI_CR4_FSP;
-        break;
-    case SND_SOC_DAIFMT_LEFT_J:
-        /*
-         * Frame high, one word length for frame sync,
-         * frame sync asserts with the first bit of the frame.
-         */
-        val_cr2 |= FSL_SAI_CR2_BCP;
-        break;
-    case SND_SOC_DAIFMT_DSP_A:
-        /*
-         * Frame high, 1clk before data, one bit for frame sync,
-         * frame sync starts one serial clock cycle earlier,
-         * that is, together with the last bit of the previous
-         * data word.
-         */
-        val_cr2 |= FSL_SAI_CR2_BCP;
-        val_cr4 |= FSL_SAI_CR4_FSE;
-        sai->is_dsp_mode = true;
-        break;
-    case SND_SOC_DAIFMT_DSP_B:
-        /*
-         * Frame high, one bit for frame sync,
-         * frame sync asserts with the first bit of the frame.
-         */
-        val_cr2 |= FSL_SAI_CR2_BCP;
-        sai->is_dsp_mode = true;
-        break;
-    case SND_SOC_DAIFMT_PDM:
-        val_cr2 |= FSL_SAI_CR2_BCP;
-        val_cr4 &= ~FSL_SAI_CR4_MF;
-        sai->is_dsp_mode = true;
-        break;
-    case SND_SOC_DAIFMT_RIGHT_J:
-        /* To be done */
-    default:
-        return -EINVAL;
+        case SND_SOC_DAIFMT_I2S:
+            /*
+            * Frame low, 1clk before data, one word length for frame sync,
+            * frame sync starts one serial clock cycle earlier,
+            * that is, together with the last bit of the previous
+            * data word.
+            */
+            val_cr2 |= FSL_SAI_CR2_BCP;
+            val_cr4 |= FSL_SAI_CR4_FSE | FSL_SAI_CR4_FSP;
+            break;
+        case SND_SOC_DAIFMT_LEFT_J:
+            /*
+            * Frame high, one word length for frame sync,
+            * frame sync asserts with the first bit of the frame.
+            */
+            val_cr2 |= FSL_SAI_CR2_BCP;
+            break;
+        case SND_SOC_DAIFMT_DSP_A:
+            /*
+            * Frame high, 1clk before data, one bit for frame sync,
+            * frame sync starts one serial clock cycle earlier,
+            * that is, together with the last bit of the previous
+            * data word.
+            */
+            val_cr2 |= FSL_SAI_CR2_BCP;
+            val_cr4 |= FSL_SAI_CR4_FSE;
+            sai->is_dsp_mode = true;
+            break;
+        case SND_SOC_DAIFMT_DSP_B:
+            /*
+            * Frame high, one bit for frame sync,
+            * frame sync asserts with the first bit of the frame.
+            */
+            val_cr2 |= FSL_SAI_CR2_BCP;
+            sai->is_dsp_mode = true;
+            break;
+        case SND_SOC_DAIFMT_PDM:
+            val_cr2 |= FSL_SAI_CR2_BCP;
+            val_cr4 &= ~FSL_SAI_CR4_MF;
+            sai->is_dsp_mode = true;
+            break;
+        case SND_SOC_DAIFMT_RIGHT_J:
+            /* To be done */
+        default:
+            return -EINVAL;
     }
 
     /* DAI clock inversion */
     switch (fmt & SND_SOC_DAIFMT_INV_MASK) {
-    case SND_SOC_DAIFMT_IB_IF:
-        /* Invert both clocks */
-        val_cr2 ^= FSL_SAI_CR2_BCP;
-        val_cr4 ^= FSL_SAI_CR4_FSP;
-        break;
-    case SND_SOC_DAIFMT_IB_NF:
-        /* Invert bit clock */
-        val_cr2 ^= FSL_SAI_CR2_BCP;
-        break;
-    case SND_SOC_DAIFMT_NB_IF:
-        /* Invert frame clock */
-        val_cr4 ^= FSL_SAI_CR4_FSP;
-        break;
-    case SND_SOC_DAIFMT_NB_NF:
-        /* Nothing to do for both normal cases */
-        break;
-    default:
-        return -EINVAL;
+        case SND_SOC_DAIFMT_IB_IF:
+            /* Invert both clocks */
+            val_cr2 ^= FSL_SAI_CR2_BCP;
+            val_cr4 ^= FSL_SAI_CR4_FSP;
+            break;
+        case SND_SOC_DAIFMT_IB_NF:
+            /* Invert bit clock */
+            val_cr2 ^= FSL_SAI_CR2_BCP;
+            break;
+        case SND_SOC_DAIFMT_NB_IF:
+            /* Invert frame clock */
+            val_cr4 ^= FSL_SAI_CR4_FSP;
+            break;
+        case SND_SOC_DAIFMT_NB_NF:
+            /* Nothing to do for both normal cases */
+            break;
+        default:
+            return -EINVAL;
     }
 
     sai->slave_mode[tx] = false;
 
     /* DAI clock master masks */
     switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
-    case SND_SOC_DAIFMT_CBS_CFS:
-        val_cr2 |= FSL_SAI_CR2_BCD_MSTR;
-        val_cr4 |= FSL_SAI_CR4_FSD_MSTR;
-        break;
-    case SND_SOC_DAIFMT_CBM_CFM:
-        sai->slave_mode[tx] = true;
-        break;
-    case SND_SOC_DAIFMT_CBS_CFM:
-        val_cr2 |= FSL_SAI_CR2_BCD_MSTR;
-        break;
-    case SND_SOC_DAIFMT_CBM_CFS:
-        val_cr4 |= FSL_SAI_CR4_FSD_MSTR;
-        sai->slave_mode[tx] = true;
-        break;
-    default:
-        return -EINVAL;
+        case SND_SOC_DAIFMT_CBS_CFS:
+            val_cr2 |= FSL_SAI_CR2_BCD_MSTR;
+            val_cr4 |= FSL_SAI_CR4_FSD_MSTR;
+            break;
+        case SND_SOC_DAIFMT_CBM_CFM:
+            sai->slave_mode[tx] = true;
+            break;
+        case SND_SOC_DAIFMT_CBS_CFM:
+            val_cr2 |= FSL_SAI_CR2_BCD_MSTR;
+            break;
+        case SND_SOC_DAIFMT_CBM_CFS:
+            val_cr4 |= FSL_SAI_CR4_FSD_MSTR;
+            sai->slave_mode[tx] = true;
+            break;
+        default:
+            return -EINVAL;
     }
 
     regmap_read(sai->regmap, FSL_SAI_xCR2(tx, offset), &read_val);
@@ -1113,10 +1121,10 @@ static int32_t SaiSetDaiFmtTr(struct PrivPlatformData *ppd, unsigned int fmt, in
     AUDIO_DRIVER_LOG_ERR("FSL_SAI_xCR4 %08x", read_val);
 
     regmap_update_bits(sai->regmap, FSL_SAI_xCR2(tx, offset),
-               FSL_SAI_CR2_BCP | FSL_SAI_CR2_BCD_MSTR, val_cr2);
+                       FSL_SAI_CR2_BCP | FSL_SAI_CR2_BCD_MSTR, val_cr2);
     regmap_update_bits(sai->regmap, FSL_SAI_xCR4(tx, offset),
-               FSL_SAI_CR4_MF | FSL_SAI_CR4_FSE |
-               FSL_SAI_CR4_FSP | FSL_SAI_CR4_FSD_MSTR, val_cr4);
+                       FSL_SAI_CR4_MF | FSL_SAI_CR4_FSE |
+                       FSL_SAI_CR4_FSP | FSL_SAI_CR4_FSD_MSTR, val_cr4);
 
     regmap_read(sai->regmap, FSL_SAI_xCR2(tx, offset), &read_val);
     AUDIO_DRIVER_LOG_ERR("FSL_SAI_xCR2 %08x", read_val);
@@ -1176,6 +1184,7 @@ int32_t SaiDriverInit(struct PlatformData *pd)
     char tmp[8];
     int irq = 0, ret = 0, i = 0;
     unsigned long clk_rate = 0;
+    int ret = 0;
 
     sai = &ppd->sai;
     g_sai = sai;
@@ -1192,7 +1201,6 @@ int32_t SaiDriverInit(struct PlatformData *pd)
 
     res = platform_get_resource(ppd->pdev, IORESOURCE_MEM, 0);
     base = devm_ioremap_resource(&ppd->pdev->dev, res);
-
     if (IS_ERR(base)) {
         return PTR_ERR(base);
     }
@@ -1222,11 +1230,14 @@ int32_t SaiDriverInit(struct PlatformData *pd)
     AUDIO_DRIVER_LOG_ERR("bus rate %d", clk_rate);
 
     for (i = 0; i < FSL_SAI_MCLK_MAX; i++) {
-        snprintf(tmp, sizeof(tmp), "mclk%d", i);
+        ret = snprintf_s(tmp, sizeof(tmp)-1, sizeof(tmp)-1, "mclk%d", i);
+        if (ret < 0) {
+            AUDIO_DRIVER_LOG_ERR("failed to write mclk");
+        }
         sai->mclk_clk[i] = devm_clk_get(&ppd->pdev->dev, tmp);
         if (IS_ERR(sai->mclk_clk[i])) {
             AUDIO_DRIVER_LOG_ERR("failed to get mclk%d clock: %ld\n",
-                    i, PTR_ERR(sai->mclk_clk[i]));
+                i, PTR_ERR(sai->mclk_clk[i]));
             sai->mclk_clk[i] = NULL;
         }
         clk_rate = clk_get_rate(sai->mclk_clk[i]);
@@ -1257,7 +1268,6 @@ int32_t SaiDriverInit(struct PlatformData *pd)
 
     ret = fsl_sai_read_dlcfg(ppd->pdev, "fsl,dataline,dsd", &sai->dsd_dl_cfg,
                              sai->dataline);
-
     if (ret < 0) {
         return ret;
     }
@@ -1306,7 +1316,7 @@ int32_t SaiDriverInit(struct PlatformData *pd)
     if (of_find_property(np, "fsl,sai-mclk-direction-output", NULL) &&
         sai->verid.id >= FSL_SAI_VERID_0301) {
         regmap_update_bits(sai->regmap, FSL_SAI_MCTL,
-                   FSL_SAI_MCTL_MCLK_EN, FSL_SAI_MCTL_MCLK_EN);
+            FSL_SAI_MCTL_MCLK_EN, FSL_SAI_MCTL_MCLK_EN);
     }
 
     ppd->dma_addr_src = res->start + FSL_SAI_RDR0;
@@ -1379,7 +1389,7 @@ int32_t SaiTrigger(const struct DaiData *pd, int cmd, int isTx)
             }
             j++;
 
-            if ((k % pins) == 0) {
+            if ((pins != 0) && (k % pins) == 0) {
                 j = 0;
             }
         }
@@ -1403,29 +1413,29 @@ int32_t SaiTrigger(const struct DaiData *pd, int cmd, int isTx)
                            FSL_SAI_CSR_xIE_MASK, FSL_SAI_FLAGS);
     } else {
         regmap_update_bits(sai->regmap, FSL_SAI_xCSR(tx, offset),
-                   FSL_SAI_CSR_FRDE, 0);
+            FSL_SAI_CSR_FRDE, 0);
         regmap_update_bits(sai->regmap, FSL_SAI_xCSR(tx, offset),
-                   FSL_SAI_CSR_xIE_MASK, 0);
+            FSL_SAI_CSR_xIE_MASK, 0);
 
         /* Check if the opposite FRDE is also disabled */
         regmap_read(sai->regmap, FSL_SAI_xCSR(!tx, offset), &xcsr);
         if (!(xcsr & FSL_SAI_CSR_FRDE)) {
             /* Disable both directions and reset their FIFOs */
             regmap_update_bits(sai->regmap, FSL_SAI_TCSR(offset),
-                       FSL_SAI_CSR_TERE, 0);
+                FSL_SAI_CSR_TERE, 0);
             regmap_update_bits(sai->regmap, FSL_SAI_RCSR(offset),
-                       FSL_SAI_CSR_TERE, 0);
+                FSL_SAI_CSR_TERE, 0);
 
             /* TERE will remain set till the end of current frame */
             do {
                 udelay(10);
                 regmap_read(sai->regmap, FSL_SAI_xCSR(tx, offset), &xcsr);
-            } while (--count && xcsr & FSL_SAI_CSR_TERE);
+            } while (((--count) && (xcsr)) & (FSL_SAI_CSR_TERE));
 
             regmap_update_bits(sai->regmap, FSL_SAI_TCSR(offset),
-                       FSL_SAI_CSR_FR, FSL_SAI_CSR_FR);
+                FSL_SAI_CSR_FR, FSL_SAI_CSR_FR);
             regmap_update_bits(sai->regmap, FSL_SAI_RCSR(offset),
-                       FSL_SAI_CSR_FR, FSL_SAI_CSR_FR);
+                FSL_SAI_CSR_FR, FSL_SAI_CSR_FR);
 
             /*
              * For sai master mode, after several open/close sai,
@@ -1437,9 +1447,9 @@ int32_t SaiTrigger(const struct DaiData *pd, int cmd, int isTx)
             if (!sai->slave_mode[tx]) {
                 /* Software Reset for both Tx and Rx */
                 regmap_write(sai->regmap,
-                         FSL_SAI_TCSR(offset), FSL_SAI_CSR_SR);
+                    FSL_SAI_TCSR(offset), FSL_SAI_CSR_SR);
                 regmap_write(sai->regmap,
-                         FSL_SAI_RCSR(offset), FSL_SAI_CSR_SR);
+                    FSL_SAI_RCSR(offset), FSL_SAI_CSR_SR);
                 /* Clear SR bit to finish the reset */
                 regmap_write(sai->regmap, FSL_SAI_TCSR(offset), 0);
                 regmap_write(sai->regmap, FSL_SAI_RCSR(offset), 0);
@@ -1546,11 +1556,11 @@ int32_t SaiDaiProbe(const struct PlatformData *platformData)
 
     AUDIO_DRIVER_LOG_ERR("sai dai probe");
     regmap_update_bits(sai->regmap, FSL_SAI_TCR1(offset),
-                sai->fifo_depth - 1,
-                sai->fifo_depth - FSL_SAI_MAXBURST_TX);
+                       sai->fifo_depth - 1,
+                       sai->fifo_depth - FSL_SAI_MAXBURST_TX);
     regmap_update_bits(sai->regmap, FSL_SAI_RCR1(offset),
-                sai->fifo_depth - 1,
-                FSL_SAI_MAXBURST_RX - 1);
+                       sai->fifo_depth - 1,
+                       FSL_SAI_MAXBURST_RX - 1);
 
     if (!IS_ERR_OR_NULL(sai->pinctrl)) {
         sai->pins_state = pinctrl_lookup_state(sai->pinctrl, "default");

@@ -131,7 +131,7 @@ static int32_t PlatformDriverInit(struct HdfDeviceObject *device)
     }
 
     platformHost = (struct PlatformHost *)device->service;
-    if (NULL != platformHost) {
+    if (platformHost != NULL) {
         OsalMutexInit(&g_platform_data.renderBufInfo.buffMutex);
         OsalMutexInit(&g_platform_data.captureBufInfo.buffMutex);
     }

@@ -16,6 +16,11 @@
  * limitations under the License.
  */
 
+#include <sound/soc.h>
+#include <sound/jack.h>
+#include <sound/control.h>
+#include <sound/pcm_params.h>
+#include <sound/soc-dapm.h>
 #include <linux/clk.h>
 #include <linux/clk/clk-conf.h>
 #include <linux/module.h>
@@ -24,11 +29,6 @@
 #include <linux/of_gpio.h>
 #include <linux/slab.h>
 #include <linux/gpio.h>
-#include <sound/soc.h>
-#include <sound/jack.h>
-#include <sound/control.h>
-#include <sound/pcm_params.h>
-#include <sound/soc-dapm.h>
 #include <linux/pinctrl/consumer.h>
 #include <linux/mfd/syscon.h>
 
@@ -192,7 +192,6 @@ int32_t DaiHwParams(const struct AudioCard *card, const struct AudioPcmHwParams 
 
     if (pdd->mclk) {
         AUDIO_DRIVER_LOG_ERR("enable mclk");
-        //        ret = clk_prepare_enable(pdd->mclk);
     } else {
         AUDIO_DRIVER_LOG_ERR("daihost mclk nullptr");
         return HDF_FAILURE;
@@ -223,37 +222,36 @@ int32_t DaiTrigger(const struct AudioCard *card, int cmd, const struct DaiDevice
     int32_t ret = 0;
     struct PlatformData *pData = PlatformDataFromCard(card);
 
-    switch (cmd){
+    switch (cmd) {
         case AUDIO_DRV_PCM_IOCTL_RENDER_START:
         case AUDIO_DRV_PCM_IOCTL_CAPTURE_START:
         case AUDIO_DRV_PCM_IOCTL_RENDER_RESUME:
         case AUDIO_DRV_PCM_IOCTL_CAPTURE_RESUME:
+            if (g_dmaRequestChannel == 0) {
+                Imx8mmDmaRequestChannel(pData, data->pcmInfo.streamType);
 
-        if (0 ==  g_dmaRequestChannel){
-            Imx8mmDmaRequestChannel(pData, data->pcmInfo.streamType);
+                if (pData->renderBufInfo.virtAddr == NULL) {
+                    ret = DMAInitTxBuff(pData);
+                    if (ret != HDF_SUCCESS) {
+                    AUDIO_DRIVER_LOG_ERR("DMAAoInit: fail");
+                    return HDF_FAILURE;
+                    }
+                }
 
-            if (pData->renderBufInfo.virtAddr == NULL) {
-                ret = DMAInitTxBuff(pData);
+                ret = DMAEnableTx(pData);
                 if (ret != HDF_SUCCESS) {
-                AUDIO_DRIVER_LOG_ERR("DMAAoInit: fail");
-                return HDF_FAILURE;
+                    AUDIO_DRIVER_LOG_ERR("DMAEnableTx failed");
+                    return HDF_FAILURE;
                 }
             }
 
-            ret = DMAEnableTx(pData);
+            g_dmaRequestChannel = 0;
+            ret = SaiTrigger(data, TRIGGER_START, tx);
             if (ret != HDF_SUCCESS) {
-                AUDIO_DRIVER_LOG_ERR("DMAEnableTx failed");
+                AUDIO_DRIVER_LOG_ERR("SaiTrigger failed");
                 return HDF_FAILURE;
             }
-        }
-
-        g_dmaRequestChannel = 0;
-        ret = SaiTrigger(data, TRIGGER_START, tx);
-        if (ret != HDF_SUCCESS) {
-            AUDIO_DRIVER_LOG_ERR("SaiTrigger failed");
-            return HDF_FAILURE;
-        }
-        break;
+            break;
         case AUDIO_DRV_PCM_IOCTL_RENDER_STOP:
         case AUDIO_DRV_PCM_IOCTL_CAPTURE_STOP:
         case AUDIO_DRV_PCM_IOCTL_RENDER_PAUSE:
@@ -269,10 +267,10 @@ int32_t DaiTrigger(const struct AudioCard *card, int cmd, const struct DaiDevice
                 AUDIO_DRIVER_LOG_ERR("runtime suspend failed");
                 return HDF_FAILURE;
             }
-        break;
+            break;
         default:
             AUDIO_DRIVER_LOG_ERR("cmd is error");
-        break;
+            break;
     }
     return HDF_SUCCESS;
 }
@@ -312,7 +310,6 @@ static int32_t DaiFindDeviceFromBus(struct device *dev, void *para)
     }
 
     if (!strstr(pdev->name, pdd->dai_dev_name)) {
-        //        AUDIO_DRIVER_LOG_ERR("wrong pdev name %s\n", pdev->name);
         return DAI_FIND_NEXT;
     }
 
@@ -392,7 +389,6 @@ static int32_t DaiInit(struct DaiHost * daiHost, struct HdfDeviceObject *device)
     }
 
     gpr_np = of_parse_phandle(pdd->pdev->dev.of_node, "gpr", 0);
-
     if (gpr_np) {
         pdd->gpr = syscon_node_to_regmap(gpr_np);
         if (IS_ERR(pdd->gpr)) {
