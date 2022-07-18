@@ -431,14 +431,155 @@ static int WM8904_Set_Deemph(void)
                                WM8904_DEEMPH_MASK, val, BYTE_NUM);
 }
 
-int out_pga(int reg, int event)
+typedef struct dcs_params {
+    int reg;
+    int dcs_mask;
+    int dcs_l;
+    int dcs_r;
+    int dcs_l_reg;
+    int dcs_r_reg;
+    int pwr_reg;
+} stDcsParam;
+
+static int DapmPrePMU(struct stDcsParam dcsParam)
 {
     int val = 0;
-    int dcs_mask = 0;
-    int dcs_l = 0, dcs_r = 0;
-    int dcs_l_reg = 0, dcs_r_reg = 0;
+    int reg = dcsParam.reg;
+    int dcs_mask = dcsParam.dcs_mask;
+    int dcs_l = dcsParam.dcs_l, dcs_r = dcsParam.dcs_r;
+    int dcs_l_reg = dcsParam.dcs_l_reg, dcs_r_reg = dcsParam.dcs_r_reg;
     int timeout = 0;
-    int pwr_reg = 0;
+    int pwr_reg = dcsParam.pwr_reg;
+
+
+    /* Power on the PGAs */
+    WM8904RegUpdateBits(g_wm8904_i2c_handle, pwr_reg,
+        WM8904_HPL_PGA_ENA | WM8904_HPR_PGA_ENA,
+        WM8904_HPL_PGA_ENA | WM8904_HPR_PGA_ENA, BYTE_NUM);
+
+    /* Power on the amplifier */
+    WM8904RegUpdateBits(g_wm8904_i2c_handle, reg,
+        WM8904_HPL_ENA | WM8904_HPR_ENA,
+        WM8904_HPL_ENA | WM8904_HPR_ENA, BYTE_NUM);
+
+    /* Enable the first stage */
+    WM8904RegUpdateBits(g_wm8904_i2c_handle, reg,
+        WM8904_HPL_ENA_DLY | WM8904_HPR_ENA_DLY,
+        WM8904_HPL_ENA_DLY | WM8904_HPR_ENA_DLY, BYTE_NUM);
+
+    /* Power up the DC servo */
+    WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_DC_SERVO_0,
+                        dcs_mask, dcs_mask, BYTE_NUM);
+
+    /* Either calibrate the DC servo or restore cached state
+    * if we have that.
+    */
+    if (gpwm8904->dcs_state[dcs_l] || gpwm8904->dcs_state[dcs_r]) {
+        WM8904_CODEC_LOG_DEBUG("Restoring DC servo state");
+
+        WM8904RegWrite(g_wm8904_i2c_handle, dcs_l_reg,
+            gpwm8904->dcs_state[dcs_l], BYTE_NUM);
+        WM8904RegWrite(g_wm8904_i2c_handle, dcs_r_reg,
+            gpwm8904->dcs_state[dcs_r], BYTE_NUM);
+
+        WM8904RegWrite(g_wm8904_i2c_handle, WM8904_DC_SERVO_1, dcs_mask, BYTE_NUM);
+
+        timeout = TIMEOUT_20;
+    } else {
+        WM8904_CODEC_LOG_DEBUG("Calibrating DC servo");
+
+        WM8904RegWrite(g_wm8904_i2c_handle, WM8904_DC_SERVO_1,
+            dcs_mask << WM8904_DCS_TRIG_STARTUP_0_SHIFT, BYTE_NUM);
+
+        timeout = TIMEOUT_500;
+    }
+
+    /* Wait for DC servo to complete */
+    dcs_mask <<= WM8904_DCS_CAL_COMPLETE_SHIFT;
+    do {
+        WM8904RegRead(g_wm8904_i2c_handle, WM8904_DC_SERVO_READBACK_0, &val, BYTE_NUM);
+        if ((val & dcs_mask) == dcs_mask) {
+            break;
+        }
+        msleep(SLEEP_TIME_1);
+    } while (--timeout);
+
+    if ((val & dcs_mask) != dcs_mask) {
+        WM8904_CODEC_LOG_DEBUG("DC servo timed out");
+    } else {
+        WM8904_CODEC_LOG_DEBUG("DC servo ready");
+    }
+
+    /* Enable the output stage */
+    WM8904RegUpdateBits(g_wm8904_i2c_handle, reg,
+        WM8904_HPL_ENA_OUTP | WM8904_HPR_ENA_OUTP,
+        WM8904_HPL_ENA_OUTP | WM8904_HPR_ENA_OUTP, BYTE_NUM);
+}
+
+static int DapmPostPMD(struct stDcsParam dcsParam)
+{
+    int reg = dcsParam.reg;
+    int dcs_mask = dcsParam.dcs_mask;
+    int dcs_l = dcsParam.dcs_l;
+    int dcs_l_reg = dcsParam.dcs_l_reg, dcs_r_reg = dcsParam.dcs_r_reg;
+    int pwr_reg = dcsParam.pwr_reg;
+
+    /* Cache the DC servo configuration; this will be
+    * invalidated if we change the configuration. */
+    WM8904RegRead(g_wm8904_i2c_handle, dcs_l_reg, &(gpwm8904->dcs_state[dcs_l]), BYTE_NUM);
+    WM8904RegRead(g_wm8904_i2c_handle, dcs_r_reg, &(gpwm8904->dcs_state[dcs_l]), BYTE_NUM);
+
+    WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_DC_SERVO_0,
+        dcs_mask, 0, BYTE_NUM);
+
+    /* Disable the amplifier input and output stages */
+    WM8904RegUpdateBits(g_wm8904_i2c_handle, reg,
+        WM8904_HPL_ENA | WM8904_HPR_ENA |
+        WM8904_HPL_ENA_DLY | WM8904_HPR_ENA_DLY |
+        WM8904_HPL_ENA_OUTP | WM8904_HPR_ENA_OUTP,
+        0, BYTE_NUM);
+
+    /* PGAs too */
+    WM8904RegUpdateBits(g_wm8904_i2c_handle, pwr_reg,
+        WM8904_HPL_PGA_ENA | WM8904_HPR_PGA_ENA,
+        0, BYTE_NUM);
+    return 0;
+}
+
+static int getRegValue(int reg, int *dcs_r_reg, int* dcs_l_reg, int* dcs_l, int* dcs_r)
+{
+    if (dcs_r_reg == NULL || dcs_l_reg == NULL || dcs_l == NULL || dcs_r == NULL) {
+        return HDF_FAILURE;
+    }
+
+    switch (reg) {
+        case WM8904_ANALOGUE_HP_0:
+            *dcs_r_reg = WM8904_DC_SERVO_8;
+            *dcs_l_reg = WM8904_DC_SERVO_9;
+            *dcs_l = 0x0;
+            *dcs_r = 0x1;
+            break;
+
+        case WM8904_ANALOGUE_LINEOUT_0:
+            *dcs_r_reg = WM8904_DC_SERVO_6;
+            *dcs_l_reg = WM8904_DC_SERVO_7;
+            *dcs_l = BYTE_NUM;
+            *dcs_r = 0x3;
+            break;
+
+        default:
+            // nothing
+            break;
+    }
+    return 0;
+}
+
+
+int out_pga(int reg, int event)
+{
+    int val = 0, dcs_mask = 0, dcs_l = 0, dcs_r = 0, dcs_l_reg = 0;
+    int timeout = 0, dcs_r_reg = 0, pwr_reg = 0;
+    struct stDcsParam dcsParam = {0};
 
     /* This code is shared between HP and LINEOUT; we do all our
      * power management in stereo pairs to avoid latency issues so
@@ -448,127 +589,44 @@ int out_pga(int reg, int event)
         case WM8904_ANALOGUE_HP_0:
             pwr_reg = WM8904_POWER_MANAGEMENT_2;
             dcs_mask = WM8904_DCS_ENA_CHAN_0 | WM8904_DCS_ENA_CHAN_1;
-            dcs_r_reg = WM8904_DC_SERVO_8;
-            dcs_l_reg = WM8904_DC_SERVO_9;
-            dcs_l = 0x0;
-            dcs_r = 0x1;
             break;
         case WM8904_ANALOGUE_LINEOUT_0:
             pwr_reg = WM8904_POWER_MANAGEMENT_3;
             dcs_mask = WM8904_DCS_ENA_CHAN_2 | WM8904_DCS_ENA_CHAN_3;
-            dcs_r_reg = WM8904_DC_SERVO_6;
-            dcs_l_reg = WM8904_DC_SERVO_7;
-            dcs_l = BYTE_NUM;
-            dcs_r = 0x3;
             break;
         default:
-            WARN(1, "Invalid reg %d\n", reg);
             return -EINVAL;
     }
+    getRegValue(reg, &dcs_r_reg, &dcs_l_reg, &dcs_l, &dcs_r);
+
+    dcsParam.reg = reg;
+    dcsParam.dcs_mask = dcs_mask;
+    dcsParam.dcs_l = dcs_l;
+    dcsParam.dcs_r = dcs_r;
+    dcsParam.dcs_l_reg = dcs_l_reg;
+    dcsParam.dcs_r_reg = dcs_r_reg;
+    dcsParam.pwr_reg = pwr_reg;
 
     switch (event) {
         case SND_SOC_DAPM_PRE_PMU:
-            /* Power on the PGAs */
-            WM8904RegUpdateBits(g_wm8904_i2c_handle, pwr_reg,
-                WM8904_HPL_PGA_ENA | WM8904_HPR_PGA_ENA,
-                WM8904_HPL_PGA_ENA | WM8904_HPR_PGA_ENA, BYTE_NUM);
-
-            /* Power on the amplifier */
-            WM8904RegUpdateBits(g_wm8904_i2c_handle, reg,
-                WM8904_HPL_ENA | WM8904_HPR_ENA,
-                WM8904_HPL_ENA | WM8904_HPR_ENA, BYTE_NUM);
-
-            /* Enable the first stage */
-            WM8904RegUpdateBits(g_wm8904_i2c_handle, reg,
-                WM8904_HPL_ENA_DLY | WM8904_HPR_ENA_DLY,
-                WM8904_HPL_ENA_DLY | WM8904_HPR_ENA_DLY, BYTE_NUM);
-
-            /* Power up the DC servo */
-            WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_DC_SERVO_0,
-                                dcs_mask, dcs_mask, BYTE_NUM);
-
-            /* Either calibrate the DC servo or restore cached state
-            * if we have that.
-            */
-            if (gpwm8904->dcs_state[dcs_l] || gpwm8904->dcs_state[dcs_r]) {
-                WM8904_CODEC_LOG_DEBUG("Restoring DC servo state");
-
-                WM8904RegWrite(g_wm8904_i2c_handle, dcs_l_reg,
-                    gpwm8904->dcs_state[dcs_l], BYTE_NUM);
-                WM8904RegWrite(g_wm8904_i2c_handle, dcs_r_reg,
-                    gpwm8904->dcs_state[dcs_r], BYTE_NUM);
-
-                WM8904RegWrite(g_wm8904_i2c_handle, WM8904_DC_SERVO_1, dcs_mask, BYTE_NUM);
-
-                timeout = TIMEOUT_20;
-            } else {
-                WM8904_CODEC_LOG_DEBUG("Calibrating DC servo");
-
-                WM8904RegWrite(g_wm8904_i2c_handle, WM8904_DC_SERVO_1,
-                    dcs_mask << WM8904_DCS_TRIG_STARTUP_0_SHIFT, BYTE_NUM);
-
-                timeout = TIMEOUT_500;
-            }
-
-            /* Wait for DC servo to complete */
-            dcs_mask <<= WM8904_DCS_CAL_COMPLETE_SHIFT;
-            do {
-                WM8904RegRead(g_wm8904_i2c_handle, WM8904_DC_SERVO_READBACK_0, &val, BYTE_NUM);
-                if ((val & dcs_mask) == dcs_mask) {
-                    break;
-                }
-                msleep(SLEEP_TIME_1);
-            } while (--timeout);
-
-            if ((val & dcs_mask) != dcs_mask) {
-                WM8904_CODEC_LOG_DEBUG("DC servo timed out");
-            } else {
-                WM8904_CODEC_LOG_DEBUG("DC servo ready");
-            }
-
-            /* Enable the output stage */
-            WM8904RegUpdateBits(g_wm8904_i2c_handle, reg,
-                WM8904_HPL_ENA_OUTP | WM8904_HPR_ENA_OUTP,
-                WM8904_HPL_ENA_OUTP | WM8904_HPR_ENA_OUTP, BYTE_NUM);
+            DapmPrePMU(dcsParam);
             break;
 
         case SND_SOC_DAPM_POST_PMU:
             /* Unshort the output itself */
             WM8904RegUpdateBits(g_wm8904_i2c_handle, reg,
-                WM8904_HPL_RMV_SHORT |
-                WM8904_HPR_RMV_SHORT,
-                WM8904_HPL_RMV_SHORT |
-                WM8904_HPR_RMV_SHORT, BYTE_NUM);
-
+                WM8904_HPL_RMV_SHORT | WM8904_HPR_RMV_SHORT,
+                WM8904_HPL_RMV_SHORT | WM8904_HPR_RMV_SHORT, BYTE_NUM);
             break;
 
         case SND_SOC_DAPM_PRE_PMD:
             /* Short the output */
             WM8904RegUpdateBits(g_wm8904_i2c_handle, reg,
-                WM8904_HPL_RMV_SHORT |
-                WM8904_HPR_RMV_SHORT, 0, BYTE_NUM);
+                WM8904_HPL_RMV_SHORT | WM8904_HPR_RMV_SHORT, 0, BYTE_NUM);
             break;
 
         case SND_SOC_DAPM_POST_PMD:
-            /* Cache the DC servo configuration; this will be
-            * invalidated if we change the configuration. */
-            WM8904RegRead(g_wm8904_i2c_handle, dcs_l_reg, &(gpwm8904->dcs_state[dcs_l]), BYTE_NUM);
-            WM8904RegRead(g_wm8904_i2c_handle, dcs_r_reg, &(gpwm8904->dcs_state[dcs_l]), BYTE_NUM);
-
-            WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_DC_SERVO_0,
-                dcs_mask, 0, BYTE_NUM);
-
-            /* Disable the amplifier input and output stages */
-            WM8904RegUpdateBits(g_wm8904_i2c_handle, reg,
-                WM8904_HPL_ENA | WM8904_HPR_ENA |
-                WM8904_HPL_ENA_DLY | WM8904_HPR_ENA_DLY |
-                WM8904_HPL_ENA_OUTP | WM8904_HPR_ENA_OUTP,
-                0, BYTE_NUM);
-
-            /* PGAs too */
-            WM8904RegUpdateBits(g_wm8904_i2c_handle, pwr_reg,
-                WM8904_HPL_PGA_ENA | WM8904_HPR_PGA_ENA,
-                0, BYTE_NUM);
+            DapmPostPMD(dcsParam);
             break;
         default:
             // nothing to do
@@ -1162,7 +1220,7 @@ int WM8904_SET_BIAS_LEVEL(enum snd_soc_bias_level level)
 
             /* Bias current *0.5 */
             WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_BIAS_CONTROL_0,
-                                WM8904_ISEL_MASK, 0, BYTE_NUM);
+                WM8904_ISEL_MASK, 0, BYTE_NUM);
             g_cur_bias_level = SND_SOC_BIAS_STANDBY;
 
             break;

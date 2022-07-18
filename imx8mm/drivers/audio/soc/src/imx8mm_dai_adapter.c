@@ -214,6 +214,28 @@ int32_t DaiHwParams(const struct AudioCard *card, const struct AudioPcmHwParams 
 
     return HDF_SUCCESS;
 }
+
+static int DaiTriggerDMAInit(struct PlatformData *pData)
+{
+    int32_t ret = 0;
+    
+    if (pData == NULL) {
+        return HDF_FAILURE;
+    }
+    
+    
+    if (pData->renderBufInfo.virtAddr == NULL) {
+        ret = DMAInitTxBuff(pData);
+        if (ret != HDF_SUCCESS) {
+            AUDIO_DRIVER_LOG_ERR("DMAAoInit: fail");
+            return HDF_FAILURE;
+        }
+    }
+
+    return ret;
+}
+
+
 extern int32_t g_dmaRequestChannel;
 int32_t DaiTrigger(const struct AudioCard *card, int cmd, const struct DaiDevice *device)
 {
@@ -230,13 +252,7 @@ int32_t DaiTrigger(const struct AudioCard *card, int cmd, const struct DaiDevice
             if (g_dmaRequestChannel == 0) {
                 Imx8mmDmaRequestChannel(pData, data->pcmInfo.streamType);
 
-                if (pData->renderBufInfo.virtAddr == NULL) {
-                    ret = DMAInitTxBuff(pData);
-                    if (ret != HDF_SUCCESS) {
-                    AUDIO_DRIVER_LOG_ERR("DMAAoInit: fail");
-                    return HDF_FAILURE;
-                    }
-                }
+                DaiTriggerDMAInit(pData);
 
                 ret = DMAEnableTx(pData);
                 if (ret != HDF_SUCCESS) {
