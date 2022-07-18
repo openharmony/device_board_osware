@@ -29,6 +29,7 @@
 
 #define DATA_LEN_1  (1)
 #define DATA_LEN_2  (2)
+#define BYTE_NUM    (8)
 
 DevHandle WM8904I2cOpen(void)
 {
@@ -52,7 +53,7 @@ struct I2cTransferParam g_transferParam;
 
 
 /************************************************************************************************
-    __WM8904I2cRead: Read any Length byte from i2 device reg
+    WM8904I2cRead: Read any Length byte from i2 device reg
     struct DevHandle i2cHandle[in]  : i2c bus Handle
     unsigned int regaddr [in]       : max supports 16 bits i2c device reg address
     unsigned int regLen  [in]       : reg address length(8 or 16 bits)
@@ -60,7 +61,7 @@ struct I2cTransferParam g_transferParam;
     unsigned int dataLen [in]       : buffer length
     return : status
 ************************************************************************************************/
-static int __WM8904I2cRead(DevHandle i2cHandle, uint16_t regaddr,
+static int WM8904I2cRead(DevHandle i2cHandle, uint16_t regaddr,
                            unsigned int regLen, uint8_t *regdata, unsigned int dataLen)
 {
     int index = 0;
@@ -87,7 +88,7 @@ static int __WM8904I2cRead(DevHandle i2cHandle, uint16_t regaddr,
     msgs[1].len = dataLen;
     msgs[1].buf = regdata;
 
-    if (I2cTransfer(i2cHandle, msgs, 2) != 2) {
+    if (I2cTransfer(i2cHandle, msgs, DATA_LEN_2) != DATA_LEN_2) {
         WM8904_CODEC_LOG_ERR("i2c I2cTransfer read msg err");
         return HDF_FAILURE;
     }
@@ -105,15 +106,15 @@ int WM8904RegRead(DevHandle i2cHandle, unsigned int reg, unsigned int *val, unsi
     }
 
     if (dataLen == DATA_LEN_2) {
-        ret = __WM8904I2cRead(i2cHandle, reg, WM8904RegAddrLen, regBuf, dataLen);
+        ret = WM8904I2cRead(i2cHandle, reg, WM8904RegAddrLen, regBuf, dataLen);
         if (ret != HDF_SUCCESS) {
             WM8904_CODEC_LOG_ERR("WM8904RegSeqRead fail.");
             return HDF_FAILURE;
         }
         *val = 0;
-        *val = (regBuf[0] << 8) | regBuf[1];
+        *val = (regBuf[0] << BYTE_NUM) | regBuf[1];
     } else if (dataLen == DATA_LEN_1) {
-        ret = __WM8904I2cRead(i2cHandle, reg, WM8904RegAddrLen, regBuf, dataLen);
+        ret = WM8904I2cRead(i2cHandle, reg, WM8904RegAddrLen, regBuf, dataLen);
         if (ret != HDF_SUCCESS) {
             WM8904_CODEC_LOG_ERR("WM8904RegSeqRead fail.");
             return HDF_FAILURE;
@@ -126,7 +127,7 @@ int WM8904RegRead(DevHandle i2cHandle, unsigned int reg, unsigned int *val, unsi
 }
 
 /*********************************************************************************************
-    __WM8904I2cWrite: Write any Length byte from i2 device reg
+    WM8904I2cWrite: Write any Length byte from i2 device reg
     struct DevHandle i2cHandle[in]  : i2c bus Handle
     unsigned int regaddr [in]       : max supports 16 bits i2c device reg address
     unsigned int regLen  [in]       : reg address length(8 or 16 bits)
@@ -134,7 +135,7 @@ int WM8904RegRead(DevHandle i2cHandle, unsigned int reg, unsigned int *val, unsi
     unsigned int dataLen [in]       : buffer length
     return : status
 *********************************************************************************************/
-static int __WM8904I2cWrite(DevHandle i2cHandle, uint16_t regaddr,
+static int WM8904I2cWrite(DevHandle i2cHandle, uint16_t regaddr,
                             unsigned int regLen, uint8_t *regdata, unsigned int dataLen)
 {
     int index = 0;
@@ -174,17 +175,17 @@ int WM8904RegWrite(DevHandle i2cHandle, unsigned int reg, unsigned int val, unsi
     WM8904_CODEC_LOG_DEBUG("entry");
 
     if (dataLen == DATA_LEN_2) {
-        regBuf[0] = (val >> 8) & 0xFF;
+        regBuf[0] = (val >> BYTE_NUM) & 0xFF;
         regBuf[1] =  val & 0xFF;
 
-        ret = __WM8904I2cWrite(i2cHandle, reg, WM8904RegAddrLen, regBuf, dataLen);
+        ret = WM8904I2cWrite(i2cHandle, reg, WM8904RegAddrLen, regBuf, dataLen);
         if (ret != HDF_SUCCESS) {
             WM8904_CODEC_LOG_ERR("datalen=2 fail.");
             return HDF_FAILURE;
         }
     } else if (dataLen == DATA_LEN_1) {
         regBuf[0] = val;
-        ret = __WM8904I2cWrite(i2cHandle, reg, WM8904RegAddrLen, regBuf, dataLen);
+        ret = WM8904I2cWrite(i2cHandle, reg, WM8904RegAddrLen, regBuf, dataLen);
         if (ret != HDF_SUCCESS) {
             WM8904_CODEC_LOG_DEBUG("datalen=1 fail.");
             return HDF_FAILURE;
