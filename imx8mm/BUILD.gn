@@ -20,7 +20,7 @@ print("imx8mm_group in")
 group("imx8mm_group") {
   deps = [
     "common/rootfs:init_configs",
-    "//device/soc/nxp/hardware:hardware_group",
     "kernel:build_kernel",
+    "//device/soc/nxp/hardware:hardware_group",
   ]
 }
