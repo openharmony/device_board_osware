@@ -451,7 +451,6 @@ static int DapmPrePMU(struct stDcsParam dcsParam)
     int timeout = 0;
     int pwr_reg = dcsParam.pwr_reg;
 
-
     /* Power on the PGAs */
     WM8904RegUpdateBits(g_wm8904_i2c_handle, pwr_reg,
         WM8904_HPL_PGA_ENA | WM8904_HPR_PGA_ENA,

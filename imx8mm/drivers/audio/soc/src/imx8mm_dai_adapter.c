@@ -223,7 +223,6 @@ static int DaiTriggerDMAInit(struct PlatformData *pData)
         return HDF_FAILURE;
     }
     
-    
     if (pData->renderBufInfo.virtAddr == NULL) {
         ret = DMAInitTxBuff(pData);
         if (ret != HDF_SUCCESS) {
