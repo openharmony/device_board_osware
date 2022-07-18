@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import("//build/ohos.gni")
-import("//drivers/adapter/uhdf2/uhdf.gni")
+import("//drivers/hdf_core/adapter/uhdf2/uhdf.gni")
 import("//drivers/peripheral/camera/hal/camera.gni")
 import("$hdf_framework_path/tools/hc-gen/hc_gen.gni")
 
@@ -30,7 +30,7 @@ ohos_prebuilt_etc("camera_host_config.hcb") {
   relative_install_dir = "hdfconfig"
   install_images = [ chipset_base_dir ]
   subsystem_name = "hdf"
-  part_name = "camera_device_driver"
+  part_name = "drivers_peripheral_camera"
 }
 
 hc_gen_c("generate_source") {
@@ -91,7 +91,7 @@ ohos_prebuilt_etc("ipp_algo_config.hcb") {
   relative_install_dir = "hdfconfig"
   install_images = [ chipset_base_dir ]
   subsystem_name = "hdf"
-  part_name = "camera_device_driver"
+  part_name = "drivers_peripheral_camera"
 }
 
 config("example_config") {
@@ -110,8 +110,8 @@ group("chipset_build") {
     ":config.c",
     ":ipp_algo_config.hcb",
     ":params.c",
-    "$board_camera_path/src/pipeline_core:camera_ipp_algo_example",
     "$board_camera_path/src/driver_adapter:camera_v4l2_adapter",
     "$board_camera_path/src/driver_adapter/main_test:v4l2_main",
+    "$board_camera_path/src/pipeline_core:camera_ipp_algo_example",
   ]
 }

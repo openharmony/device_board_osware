@@ -79,9 +79,10 @@ void yuvtorgb(int y, int u, int v, int sign, unsigned char *pixel32)
     static long int ruv, guv, buv;
 
     if (sign) {
-        ruv = val_num_1159 * (v - val_num_128);
-        guv = val_num_380 * (u - val_num_128) + val_num_813 * (v - val_num_128);
-        buv = val_num_2018 * (u - val_num_128);
+        ruv = static_cast<long int>(val_num_1159 * (v - val_num_128));
+        guv = static_cast<long int>(val_num_380 * (u - val_num_128) +
+            val_num_813 * (v - val_num_128));
+        buv = static_cast<long int>(val_num_2018 * (u - val_num_128));
     }
 
     r = (val_num_1164 * (y - val_num_16) + ruv) / val_num_1000;
@@ -121,7 +122,7 @@ void IMXCodecNode::Yuv422ToRGBA8888(std::shared_ptr<IBuffer>& buffer)
     unsigned int in, out;
     int y0, u, y1, v;
     unsigned int pixel32;
-    unsigned char *pixel = (unsigned char *)&pixel32;
+    unsigned char *pixel = reinterpret_cast<unsigned char *>(&pixel32);
     int ret = 0;
     unsigned char *temp = nullptr;
     unsigned char *yuyv = nullptr;

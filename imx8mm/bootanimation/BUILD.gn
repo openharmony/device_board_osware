@@ -31,9 +31,7 @@ ohos_prebuilt_etc("bootanimation-1920x1080") {
 
 group("bootanimation") {
   deps = [
-    ":bootanimation-720x1280",
     ":bootanimation-1920x1080",
+    ":bootanimation-720x1280",
   ]
 }
-
-

@@ -28,6 +28,10 @@
 #include "osal_time.h"
 #include "dma_driver.h"
 
+#define RATE_48000  (48000)
+#define RATE_44100  (44100)
+#define RATE_24576000  (24576000)
+#define RATE_22579200  (22579200)
 #define HDF_LOG_TAG imx8mm_platform_ops
 int32_t g_dmaRequestChannel = 0;
 
@@ -102,11 +106,10 @@ int32_t  Imx8mmDmaRequestChannel(const struct PlatformData *data, const enum Aud
         | SND_SOC_DAIFMT_NB_NF;
     AUDIO_DRIVER_LOG_ERR("FMT = %d", fmt);
 
-
-    if (rate == 48000) {
-        freq = 24576000;
-    } else if (rate == 44100) {
-        freq = 22579200;
+    if (rate == RATE_48000) {
+        freq = RATE_24576000;
+    } else if (rate == RATE_44100) {
+        freq = RATE_22579200;
     }
 
     clkId = FSL_SAI_CLK_MAST1;
@@ -140,7 +143,6 @@ int32_t  Imx8mmDmaRequestChannel(const struct PlatformData *data, const enum Aud
         AUDIO_DRIVER_LOG_ERR("set hw params failed");
         return ret;
     }
-
 
     g_dmaRequestChannel = true;
     return HDF_SUCCESS;
@@ -207,9 +209,8 @@ int32_t Imx8mmDmaSubmit(const struct PlatformData *data, const enum AudioStreamT
             AUDIO_DRIVER_LOG_ERR("DMAEnableRx failed");
             return HDF_FAILURE;
         }
-
     } else if (streamType == AUDIO_RENDER_STREAM) {
-        // TODO:delete dmaEnable because 1.after pause remalloc DMA buffer 2.DMA process must before sai trigger
+        // delete dmaEnable because 1.after pause remalloc DMA buffer 2.DMA process must before sai trigger
     } else {
         AUDIO_DRIVER_LOG_ERR("stream Type is invalude.");
         return HDF_FAILURE;
@@ -240,7 +241,7 @@ int32_t Imx8mmDmaPause(struct PlatformData *data, const enum AudioStreamType str
         DMAPauseRx(data);
     } else if (streamType == AUDIO_RENDER_STREAM) {
         data->renderBufInfo.runStatus = 0;
-        // TODO:change Disable DMA becasue 1.after pause remalloc DMA buffer
+        // change Disable DMA becasue 1.after pause remalloc DMA buffer
         DMADisableTx(data);
         ppd->tx_dma_pos = 0;
     } else {

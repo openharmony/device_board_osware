@@ -14,8 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import("//build/ohos.gni")
 import("//build/config/clang/clang.gni")
+import("//build/ohos.gni")
 import("//device/board/osware/imx8mm/kernel/kernel.gni")
 
 # it needs adaptation for more device target
@@ -36,32 +36,32 @@ kernel_source_dir = "//kernel/linux/$linux_kernel_version"
 print("root_build_dir = $root_build_dir")
 
 action("check_build") {
-    script = "check_build.sh"
-    sources = [ kernel_source_dir ]
-    outputs = [ "$root_build_dir/kernel.timestamp" ]
-    args = [
-      rebase_path(kernel_source_dir, root_build_dir),
-      rebase_path("$root_build_dir/packages/phone/images/$kernel_image"),
-      rebase_path("$root_build_dir/kernel.timestamp"),
-    ]
+  script = "check_build.sh"
+  sources = [ kernel_source_dir ]
+  outputs = [ "$root_build_dir/kernel.timestamp" ]
+  args = [
+    rebase_path(kernel_source_dir, root_build_dir),
+    rebase_path("$root_build_dir/packages/phone/images/$kernel_image"),
+    rebase_path("$root_build_dir/kernel.timestamp"),
+  ]
 }
 
 action("build_kernel") {
-    script = "build_kernel.sh"
-    sources = [ kernel_source_dir ]
+  script = "build_kernel.sh"
+  sources = [ kernel_source_dir ]
 
-    deps = [ ":check_build" ]
-    product_path = "vendor/$product_company/$product_name"
-    build_type = "standard"
-    outputs = [ "$root_build_dir/packages/phone/images/$kernel_image" ]
-    args = [
-      rebase_path(kernel_build_script_dir, root_build_dir),
-      rebase_path("$root_out_dir/../KERNEL_OBJ"),
-      rebase_path("$root_build_dir/packages/phone/images"),
-      build_type,
-      target_cpu,
-      product_path,
-      device_name,
-      linux_kernel_version,
-    ]
+  deps = [ ":check_build" ]
+  product_path = "vendor/$product_company/$product_name"
+  build_type = "standard"
+  outputs = [ "$root_build_dir/packages/phone/images/$kernel_image" ]
+  args = [
+    rebase_path(kernel_build_script_dir, root_build_dir),
+    rebase_path("$root_out_dir/../KERNEL_OBJ"),
+    rebase_path("$root_build_dir/packages/phone/images"),
+    build_type,
+    target_cpu,
+    product_path,
+    device_name,
+    linux_kernel_version,
+  ]
 }

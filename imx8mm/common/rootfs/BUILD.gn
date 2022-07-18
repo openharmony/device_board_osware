@@ -84,6 +84,21 @@ ohos_copy("flash.bin") {
   outputs = [ "$root_build_dir/packages/phone/images/flash.bin" ]
 }
 
+ohos_prebuilt_etc("imx_sdma_ko") {
+  source = "//device/board/osware/imx8mm/common/firmware/imx-sdma.ko"
+  module_install_dir = "./etc/imx_sdma"
+  install_images = [ "system" ]
+  part_name = "osware_products"
+}
+
+ohos_prebuilt_etc("ov5640_camera_mipi_v2_ko") {
+  source =
+      "//device/board/osware/imx8mm/common/firmware/ov5640_camera_mipi_v2.ko"
+  module_install_dir = "./etc/imx_camera"
+  install_images = [ "system" ]
+  part_name = "osware_products"
+}
+
 #****************************************************
 #wifi firmware
 #****************************************************
@@ -95,21 +110,24 @@ ohos_prebuilt_etc("firmware_apsta_bin") {
 }
 
 ohos_prebuilt_etc("firmware_p2p_bin") {
-  source = "//device/board/osware/imx8mm/drivers/wifi/firmware/fw_bcm43438a1_p2p.bin"
+  source =
+      "//device/board/osware/imx8mm/drivers/wifi/firmware/fw_bcm43438a1_p2p.bin"
   module_install_dir = "./etc/wifi"
   install_images = [ "system" ]
   part_name = "osware_products"
 }
 
 ohos_prebuilt_etc("firmware_bin") {
-  source = "//device/board/osware/imx8mm/drivers/wifi/firmware/fw_bcm43438a1.bin"
+  source =
+      "//device/board/osware/imx8mm/drivers/wifi/firmware/fw_bcm43438a1.bin"
   module_install_dir = "./etc/wifi"
   install_images = [ "system" ]
   part_name = "osware_products"
 }
 
 ohos_prebuilt_etc("firmware_a_nvram") {
-  source = "//device/board/osware/imx8mm/drivers/wifi/firmware/nvram_ap6212a.txt"
+  source =
+      "//device/board/osware/imx8mm/drivers/wifi/firmware/nvram_ap6212a.txt"
   module_install_dir = "./etc/wifi"
   install_images = [ "system" ]
   part_name = "osware_products"
@@ -124,19 +142,21 @@ ohos_prebuilt_etc("firmware_hcd") {
 
 group("init_configs") {
   deps = [
+    ":firmware_a_nvram",
+    ":firmware_apsta_bin",
+    ":firmware_bin",
+    ":firmware_hcd",
+    ":firmware_p2p_bin",
     ":flash.bin",
     ":fstab.imx8mm",
     ":fstab.required",
-    ":weston.cfg",
+    ":imx_sdma_ko",
     ":init.imx8mm.cfg",
-    ":init.imx8mm.usb.cfg",
-    ":init.without_two_stages.cfg",
     ":init.imx8mm.rc",
+    ":init.imx8mm.usb.cfg",
     ":init.imx8mm.usb.rc",
-    ":firmware_hcd",
-    ":firmware_bin",
-    ":firmware_a_nvram",
-    ":firmware_p2p_bin",
-    ":firmware_apsta_bin",
+    ":init.without_two_stages.cfg",
+    ":ov5640_camera_mipi_v2_ko",
+    ":weston.cfg",
   ]
 }

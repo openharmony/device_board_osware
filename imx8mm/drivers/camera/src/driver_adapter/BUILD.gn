@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import("//build/ohos.gni")
-import("//drivers/adapter/uhdf2/uhdf.gni")
+import("//drivers/hdf_core/adapter/uhdf2/uhdf.gni")
 import("//drivers/peripheral/camera/hal/camera.gni")
 
 config("v4l2_config") {
@@ -57,12 +57,12 @@ config("v4l2_config") {
 
 ohos_shared_library("camera_v4l2_adapter") {
   sources = [
-    "src/v4l2_buffer.cpp",
     "//drivers/peripheral/camera/hal/adapter/platform/v4l2/src/driver_adapter/src/v4l2_control.cpp",
+    "//drivers/peripheral/camera/hal/adapter/platform/v4l2/src/driver_adapter/src/v4l2_uvc.cpp",
+    "src/v4l2_buffer.cpp",
     "src/v4l2_dev.cpp",
     "src/v4l2_fileformat.cpp",
     "src/v4l2_stream.cpp",
-    "//drivers/peripheral/camera/hal/adapter/platform/v4l2/src/driver_adapter/src/v4l2_uvc.cpp",
   ]
 
   include_dirs = [
@@ -73,8 +73,9 @@ ohos_shared_library("camera_v4l2_adapter") {
   ]
 
   if (is_standard_system) {
+    deps = [ "$hdf_uhdf_path/utils:libhdf_utils" ]
+
     external_deps = [
-      "device_driver_framework:libhdf_utils",
       "hiviewdfx_hilog_native:libhilog",
       "utils_base:utils",
     ]

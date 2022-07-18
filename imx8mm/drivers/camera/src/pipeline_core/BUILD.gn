@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import("//build/ohos.gni")
-import("//drivers/adapter/uhdf2/uhdf.gni")
+import("//drivers/hdf_core/adapter/uhdf2/uhdf.gni")
 import("//drivers/peripheral/camera/hal/camera.gni")
 
 config("pipe_config") {
@@ -49,8 +49,8 @@ config("pipe_config") {
 ohos_shared_library("camera_pipeline_core") {
   sources = [
     "$board_camera_path/src/pipeline_core/nodes/soft_codec/imx_codec_node.cpp",
-    "$camera_path/adapter/platform/v4l2/src/pipeline_core/nodes/uvc_node/uvc_node.cpp",
     "$board_camera_path/src/pipeline_core/nodes/v4l2_source_node/v4l2_source_node.cpp",
+    "$camera_path/adapter/platform/v4l2/src/pipeline_core/nodes/uvc_node/uvc_node.cpp",
     "$camera_path/pipeline_core/host_stream/src/host_stream_impl.cpp",
     "$camera_path/pipeline_core/host_stream/src/host_stream_mgr_impl.cpp",
     "$camera_path/pipeline_core/ipp/src/algo_plugin.cpp",
@@ -121,12 +121,12 @@ ohos_shared_library("camera_pipeline_core") {
     "//third_party/libjpeg",
 
     # hcs parser
-    "//drivers/framework/include/osal",
-    "//drivers/framework/include/utils",
-    "//drivers/adapter/uhdf2/osal/include",
+    "//drivers/hdf_core/framework/include/osal",
+    "//drivers/hdf_core/framework/include/utils",
+    "//drivers/hdf_core/adapter/uhdf2/osal/include",
     "//system/core/include/cutils",
-    "//drivers/framework/utils/include",
-    "//drivers/adapter/uhdf2/osal/include",
+    "//drivers/hdf_core/framework/utils/include",
+    "//drivers/hdf_core/adapter/uhdf2/osal/include",
   ]
 
   deps = [
@@ -152,7 +152,7 @@ ohos_shared_library("camera_pipeline_core") {
   public_configs = [ ":pipe_config" ]
   install_images = [ chipset_base_dir ]
   subsystem_name = "hdf"
-  part_name = "camera_device_driver"
+  part_name = "drivers_peripheral_camera"
 }
 
 config("example_config") {
@@ -166,7 +166,9 @@ config("example_config") {
 }
 
 ohos_shared_library("camera_ipp_algo_example") {
-  sources = [ "$board_camera_path/src/pipeline_core/ipp_algo_example/ipp_algo_example.c" ]
+  sources = [
+    "$board_camera_path/src/pipeline_core/ipp_algo_example/ipp_algo_example.c",
+  ]
 
   include_dirs = [
     "$camera_path/pipeline_core/ipp/include",
@@ -176,5 +178,5 @@ ohos_shared_library("camera_ipp_algo_example") {
   public_configs = [ ":example_config" ]
   install_images = [ chipset_base_dir ]
   subsystem_name = "hdf"
-  part_name = "camera_device_driver"
+  part_name = "drivers_peripheral_camera"
 }

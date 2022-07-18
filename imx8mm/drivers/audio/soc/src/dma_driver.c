@@ -29,7 +29,6 @@
 #include "imx8mm_common.h"
 
 #define HDF_LOG_TAG imx8mm_dma_driver
-// #define RING_BUFFER_DEBUG
 static void DMATxComplete(void *arg)
 {
     struct dma_tx_state state;
@@ -122,7 +121,6 @@ int32_t DMAInitTxBuff(struct PlatformData *platformData)
     ppd->dma_chan_tx = dma_request_slave_channel(dev, "tx");
     if (!ppd->dma_chan_tx) {
         AUDIO_DRIVER_LOG_ERR("cannot get the DMA channel.");
-        // DMADeinitTxBuff(platformData);
         return HDF_FAILURE;
     }
 
@@ -135,7 +133,6 @@ int32_t DMAInitTxBuff(struct PlatformData *platformData)
         slave_config.dst_addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
     } else {
         AUDIO_DRIVER_LOG_ERR("bit width is invalid");
-        // DMADeinitTxBuff(platformData);
         return HDF_FAILURE;
     }
 
@@ -144,13 +141,11 @@ int32_t DMAInitTxBuff(struct PlatformData *platformData)
     AUDIO_DRIVER_LOG_ERR("dma phyaddr = %08x", platformData->renderBufInfo.phyAddr);
     AUDIO_DRIVER_LOG_ERR("dma maxburst = %d", slave_config.dst_maxburst);
     AUDIO_DRIVER_LOG_ERR("dma dst_addr_width = %d", slave_config.dst_addr_width);
-    // AUDIO_DRIVER_LOG_ERR("dma buffersize = %d", buffSize);
     AUDIO_DRIVER_LOG_ERR("dma period size = %d", platformData->renderBufInfo.periodSize);
 
     ret = dmaengine_slave_config(ppd->dma_chan_tx, &slave_config);
     if (ret) {
         AUDIO_DRIVER_LOG_ERR("err in TX dma configuration");
-        // DMADeinitTxBuff(platformData);
         return HDF_FAILURE;
     }
 
@@ -181,7 +176,6 @@ int32_t DMAEnableTx(const struct PlatformData *platformData)
                                      platformData->renderBufInfo.cirBufSize,
                                      platformData->renderBufInfo.periodSize,
                                      DMA_MEM_TO_DEV, DMA_CTRL_ACK | DMA_PREP_INTERRUPT);
-
     if (!desc) {
         AUDIO_DRIVER_LOG_ERR("failed to prepare slave DMA tx");
         return HDF_FAILURE;
@@ -258,10 +252,10 @@ static void DMARxComplete(void *arg)
     unsigned int free = 0, use = 0;
     wptr = ppd->rx_dma_pos;
     rptr = ppd->rx_read_pos;
-    if (wptr >= rptr){
+    if (wptr >= rptr) {
         use  = wptr - rptr;
         free = platformData->captureBufInfo.cirBufSize - use;
-    } else{
+    } else {
         free = rptr - wptr;
         use  = platformData->captureBufInfo.cirBufSize - free;
     }
@@ -341,7 +335,6 @@ int32_t DMAInitRxBuff(struct PlatformData *platformData)
     ppd->dma_chan_rx = dma_request_slave_channel(dev, "rx");
     if (!ppd->dma_chan_rx) {
         AUDIO_DRIVER_LOG_ERR("cannot get the DMA channel");
-        // DMADeinitRxBuff(platformData);
         return HDF_FAILURE;
     }
 
@@ -353,7 +346,6 @@ int32_t DMAInitRxBuff(struct PlatformData *platformData)
         slave_config.src_addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
     } else {
         AUDIO_DRIVER_LOG_ERR("bit width is invalid");
-        // DMADeinitRxBuff(platformData);
         return HDF_FAILURE;
     }
 
@@ -361,7 +353,6 @@ int32_t DMAInitRxBuff(struct PlatformData *platformData)
     ret = dmaengine_slave_config(ppd->dma_chan_rx, &slave_config);
     if (ret) {
         AUDIO_DRIVER_LOG_ERR("err in RX dma configuration");
-        // DMADeinitRxBuff(platformData);
         return HDF_FAILURE;
     }
 
@@ -391,7 +382,6 @@ int32_t DMAEnableRx(const struct PlatformData *platformData)
                                      platformData->captureBufInfo.cirBufSize,
                                      platformData->captureBufInfo.periodSize,
                                      DMA_DEV_TO_MEM, DMA_CTRL_ACK | DMA_PREP_INTERRUPT);
-
     if (!desc) {
         AUDIO_DRIVER_LOG_ERR("failed to prepare slave DMA rx");
         return HDF_FAILURE;
