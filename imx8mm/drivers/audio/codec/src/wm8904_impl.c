@@ -62,7 +62,7 @@ struct I2cTransferParam g_transferParam;
     return : status
 ************************************************************************************************/
 static int WM8904I2cRead(DevHandle i2cHandle, uint16_t regaddr,
-                           unsigned int regLen, uint8_t *regdata, unsigned int dataLen)
+                         unsigned int regLen, uint8_t *regdata, unsigned int dataLen)
 {
     int index = 0;
     unsigned char regBuf[4] = {0};
@@ -136,7 +136,7 @@ int WM8904RegRead(DevHandle i2cHandle, unsigned int reg, unsigned int *val, unsi
     return : status
 *********************************************************************************************/
 static int WM8904I2cWrite(DevHandle i2cHandle, uint16_t regaddr,
-                            unsigned int regLen, uint8_t *regdata, unsigned int dataLen)
+                          unsigned int regLen, uint8_t *regdata, unsigned int dataLen)
 {
     int index = 0;
     unsigned char regBuf[4] = {0};

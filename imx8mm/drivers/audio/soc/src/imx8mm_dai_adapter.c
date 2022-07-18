@@ -318,6 +318,7 @@ static int32_t DaiFindDeviceFromBus(struct device *dev, void *para)
 }
 
 #define MCLK_BITS (4)
+#define MCLK_BITS_OFFSET  (20)
 static int32_t DaiInit(struct DaiHost * daiHost, struct HdfDeviceObject *device)
 {
     struct PrivDaiData *pdd;
@@ -363,10 +364,7 @@ static int32_t DaiInit(struct DaiHost * daiHost, struct HdfDeviceObject *device)
 
     pdd->mclk = devm_clk_get(&codec_dev->dev, "mclk");
     if (IS_ERR(pdd->mclk)) {
-        if (codec_np) {
-            of_node_put(codec_np);
-        }
-
+        of_node_put(codec_np);
         return HDF_FAILURE;
     }
 
@@ -382,7 +380,7 @@ static int32_t DaiInit(struct DaiHost * daiHost, struct HdfDeviceObject *device)
         }
 
         /* set SAI2_MCLK_DIR to enable codec MCLK for imx7d */
-        regmap_update_bits(pdd->gpr, MCLK_BITS, 1 << 20, 1 << 20);
+        regmap_update_bits(pdd->gpr, MCLK_BITS, 1 << MCLK_BITS_OFFSET, 1 << MCLK_BITS_OFFSET);
     }
 
     return HDF_SUCCESS;
