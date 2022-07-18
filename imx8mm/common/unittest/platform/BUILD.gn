@@ -45,13 +45,13 @@ ohos_unittest("hdf_adapter_uhdf_test_platform") {
     "common/hdf_emmc_test.cpp",
     "common/hdf_gpio_test.cpp",
     "common/hdf_i2c_test.cpp",
+    "common/hdf_mipi_dsi_test.cpp",
     "common/hdf_pwm_test.cpp",
     "common/hdf_rtc_test.cpp",
+    "common/hdf_sdio_test.cpp",
     "common/hdf_spi_test.cpp",
     "common/hdf_uart_test.cpp",
     "common/hdf_watchdog_test.cpp",
-    "common/hdf_mipi_dsi_test.cpp",
-    "common/hdf_sdio_test.cpp",
   ]
 
   defines = [ "__USER__" ]
