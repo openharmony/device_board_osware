@@ -48,13 +48,13 @@ config("device_manager_config") {
 ohos_shared_library("camera_device_manager") {
   sources = [
     "$board_camera_path/src/device_manager/mx6s_csi.cpp",
+    "$board_camera_path/src/device_manager/sensor_controller.cpp",
     "$camera_path/adapter/platform/v4l2/src/device_manager/enumerator_manager.cpp",
     "$camera_path/adapter/platform/v4l2/src/device_manager/flash_controller.cpp",
     "$camera_path/adapter/platform/v4l2/src/device_manager/flash_manager.cpp",
     "$camera_path/adapter/platform/v4l2/src/device_manager/idevice_manager.cpp",
     "$camera_path/adapter/platform/v4l2/src/device_manager/isp_controller.cpp",
     "$camera_path/adapter/platform/v4l2/src/device_manager/isp_manager.cpp",
-    "$board_camera_path/src/device_manager/sensor_controller.cpp",
     "$camera_path/adapter/platform/v4l2/src/device_manager/sensor_manager.cpp",
     "$camera_path/adapter/platform/v4l2/src/device_manager/v4l2_device_manager.cpp",
     "$camera_path/device_manager/src/icontroller.cpp",

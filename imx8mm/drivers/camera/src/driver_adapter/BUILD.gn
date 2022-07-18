@@ -57,12 +57,12 @@ config("v4l2_config") {
 
 ohos_shared_library("camera_v4l2_adapter") {
   sources = [
-    "src/v4l2_buffer.cpp",
     "//drivers/peripheral/camera/hal/adapter/platform/v4l2/src/driver_adapter/src/v4l2_control.cpp",
+    "//drivers/peripheral/camera/hal/adapter/platform/v4l2/src/driver_adapter/src/v4l2_uvc.cpp",
+    "src/v4l2_buffer.cpp",
     "src/v4l2_dev.cpp",
     "src/v4l2_fileformat.cpp",
     "src/v4l2_stream.cpp",
-    "//drivers/peripheral/camera/hal/adapter/platform/v4l2/src/driver_adapter/src/v4l2_uvc.cpp",
   ]
 
   include_dirs = [
@@ -73,9 +73,7 @@ ohos_shared_library("camera_v4l2_adapter") {
   ]
 
   if (is_standard_system) {
-    deps = [
-      "$hdf_uhdf_path/utils:libhdf_utils",
-    ]
+    deps = [ "$hdf_uhdf_path/utils:libhdf_utils" ]
 
     external_deps = [
       "hiviewdfx_hilog_native:libhilog",

@@ -50,10 +50,10 @@ ohos_executable("v4l2_main") {
   install_enable = true
   sources = [
     "$board_camera_path/src/driver_adapter/src/v4l2_buffer.cpp",
-    "$camera_path/adapter/platform/v4l2/src/driver_adapter/src/v4l2_control.cpp",
     "$board_camera_path/src/driver_adapter/src/v4l2_dev.cpp",
     "$board_camera_path/src/driver_adapter/src/v4l2_fileformat.cpp",
     "$board_camera_path/src/driver_adapter/src/v4l2_stream.cpp",
+    "$camera_path/adapter/platform/v4l2/src/driver_adapter/src/v4l2_control.cpp",
     "$camera_path/adapter/platform/v4l2/src/driver_adapter/src/v4l2_uvc.cpp",
     "./v4l2_main.cpp",
   ]
@@ -65,9 +65,7 @@ ohos_executable("v4l2_main") {
     "//drivers/peripheral/camera/hal/adapter/platform/v4l2/src/driver_adapter/include",
   ]
 
-  deps = [
-    "$hdf_uhdf_path/utils:libhdf_utils",
-  ]
+  deps = [ "$hdf_uhdf_path/utils:libhdf_utils" ]
 
   external_deps = [
     "hiviewdfx_hilog_native:libhilog",
