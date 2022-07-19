@@ -66,21 +66,17 @@ int32_t Imx8mmDmaBufFree(struct PlatformData *data, const enum AudioStreamType s
     return HDF_SUCCESS;
 }
 
+#define BYTE_NUM  (2)
 int32_t  Imx8mmDmaRequestChannel(const struct PlatformData *data, const enum AudioStreamType streamType)
 {
     int32_t ret;
     const int channelMin = 1;
     const int channelMax = 2;
-    uint32_t fmt = 0;
-    uint32_t freq = 0;
-    uint32_t clkId = 0;
+    uint32_t fmt = 0, freq = 0, clkId = 0, rate = 0, bitWidth = 0;
     int channel = 0;
-    uint32_t rate = 0;
-    uint32_t bitWidth = 0;
     g_dmaRequestChannel = false;
 
     if (data == NULL) {
-        AUDIO_DRIVER_LOG_ERR("data is null");
         return HDF_FAILURE;
     }
 
@@ -93,19 +89,10 @@ int32_t  Imx8mmDmaRequestChannel(const struct PlatformData *data, const enum Aud
         rate = data->capturePcmInfo.rate;
         bitWidth = data->capturePcmInfo.bitWidth;
     } else {
-        AUDIO_DRIVER_LOG_ERR("streamType is invalid ");
         return HDF_FAILURE;
     }
 
-    if (channel< channelMin || channel > channelMax) {
-        AUDIO_DRIVER_LOG_ERR("channels param is invalid.");
-        return HDF_FAILURE;
-    }
-
-    fmt = SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_CBS_CFS
-        | SND_SOC_DAIFMT_NB_NF;
-    AUDIO_DRIVER_LOG_ERR("FMT = %d", fmt);
-
+    fmt = SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_CBS_CFS | SND_SOC_DAIFMT_NB_NF;
     if (rate == RATE_48000) {
         freq = RATE_24576000;
     } else if (rate == RATE_44100) {
@@ -116,31 +103,26 @@ int32_t  Imx8mmDmaRequestChannel(const struct PlatformData *data, const enum Aud
 
     ret = SaiRuntimeResume(data);
     if (ret != HDF_SUCCESS) {
-        AUDIO_DRIVER_LOG_ERR("set runtime resume failed");
         return ret;
     }
 
     ret = SaiSetDaiFmt(data, fmt);
     if (ret != HDF_SUCCESS) {
-        AUDIO_DRIVER_LOG_ERR("set dai fmt failed");
         return ret;
     }
 
-    ret = SaiSetDaiTdmSlot(data, 0, 0, 2, bitWidth);
+    ret = SaiSetDaiTdmSlot(data, 0, 0, BYTE_NUM, bitWidth);
     if (ret != HDF_SUCCESS) {
-        AUDIO_DRIVER_LOG_ERR("set dai tdm slot faild");
         return ret;
     }
 
     ret = SaiSetSysclk(data, clkId, freq, SOC_CLOCK_OUT);
     if (ret != HDF_SUCCESS) {
-        AUDIO_DRIVER_LOG_ERR("set dai clock faild");
         return ret;
     }
 
     ret = SaiSetHwParams(data, streamType);
     if (ret != HDF_SUCCESS) {
-        AUDIO_DRIVER_LOG_ERR("set hw params failed");
         return ret;
     }
 

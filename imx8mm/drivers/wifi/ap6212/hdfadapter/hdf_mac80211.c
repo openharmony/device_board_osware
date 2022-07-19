@@ -978,8 +978,6 @@ int32_t WalChangeBeacon(NetDevice *netDev, struct WlanBeaconConf *param)
     g_ap_setting_info.dtim_period = param->DTIMPeriod;
     g_ap_setting_info.hidden_ssid = param->hiddenSSID;
     g_ap_setting_info.beacon_interval = param->interval;
-    HDF_LOGE("%s: dtim_period:%d---hidden_ssid:%d---beacon_interval:%d!",
-        __func__, g_ap_setting_info.dtim_period, g_ap_setting_info.hidden_ssid, g_ap_setting_info.beacon_interval);
 
     g_ap_setting_info.beacon.head = param->headIEs;
     g_ap_setting_info.beacon.head_len = param->headIEsLength;

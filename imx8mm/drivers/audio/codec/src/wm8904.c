@@ -301,6 +301,7 @@ int WM8904StateInit(DevHandle handle)
     return 0;
 }
 
+#define SYSCLK_RATE (13500000)
 static int WM8904_Configure_Clocking(void)
 {
     unsigned int clock0 = 0, clock2 = 0, rate = 0;
@@ -339,7 +340,7 @@ static int WM8904_Configure_Clocking(void)
     }
 
     /* SYSCLK shouldn't be over 13.5MHz */
-    if (rate > 13500000) {
+    if (rate > SYSCLK_RATE) {
         clock0 = WM8904_MCLK_DIV;
         gpwm8904->sysclk_rate = rate / BYTE_NUM;
     } else {
@@ -430,14 +431,154 @@ static int WM8904_Set_Deemph(void)
                                WM8904_DEEMPH_MASK, val, BYTE_NUM);
 }
 
-int out_pga(int reg, int event)
+typedef struct dcs_params {
+    int reg;
+    int dcs_mask;
+    int dcs_l;
+    int dcs_r;
+    int dcs_l_reg;
+    int dcs_r_reg;
+    int pwr_reg;
+} stDcsParam;
+
+static int DapmPrePMU(struct stDcsParam dcsParam)
 {
     int val = 0;
-    int dcs_mask = 0;
-    int dcs_l = 0, dcs_r = 0;
-    int dcs_l_reg = 0, dcs_r_reg = 0;
+    int reg = dcsParam.reg;
+    int dcs_mask = dcsParam.dcs_mask;
+    int dcs_l = dcsParam.dcs_l, dcs_r = dcsParam.dcs_r;
+    int dcs_l_reg = dcsParam.dcs_l_reg, dcs_r_reg = dcsParam.dcs_r_reg;
     int timeout = 0;
-    int pwr_reg = 0;
+    int pwr_reg = dcsParam.pwr_reg;
+
+    /* Power on the PGAs */
+    WM8904RegUpdateBits(g_wm8904_i2c_handle, pwr_reg,
+        WM8904_HPL_PGA_ENA | WM8904_HPR_PGA_ENA,
+        WM8904_HPL_PGA_ENA | WM8904_HPR_PGA_ENA, BYTE_NUM);
+
+    /* Power on the amplifier */
+    WM8904RegUpdateBits(g_wm8904_i2c_handle, reg,
+        WM8904_HPL_ENA | WM8904_HPR_ENA,
+        WM8904_HPL_ENA | WM8904_HPR_ENA, BYTE_NUM);
+
+    /* Enable the first stage */
+    WM8904RegUpdateBits(g_wm8904_i2c_handle, reg,
+        WM8904_HPL_ENA_DLY | WM8904_HPR_ENA_DLY,
+        WM8904_HPL_ENA_DLY | WM8904_HPR_ENA_DLY, BYTE_NUM);
+
+    /* Power up the DC servo */
+    WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_DC_SERVO_0,
+                        dcs_mask, dcs_mask, BYTE_NUM);
+
+    /* Either calibrate the DC servo or restore cached state
+    * if we have that.
+    */
+    if (gpwm8904->dcs_state[dcs_l] || gpwm8904->dcs_state[dcs_r]) {
+        WM8904_CODEC_LOG_DEBUG("Restoring DC servo state");
+
+        WM8904RegWrite(g_wm8904_i2c_handle, dcs_l_reg,
+            gpwm8904->dcs_state[dcs_l], BYTE_NUM);
+        WM8904RegWrite(g_wm8904_i2c_handle, dcs_r_reg,
+            gpwm8904->dcs_state[dcs_r], BYTE_NUM);
+
+        WM8904RegWrite(g_wm8904_i2c_handle, WM8904_DC_SERVO_1, dcs_mask, BYTE_NUM);
+
+        timeout = TIMEOUT_20;
+    } else {
+        WM8904_CODEC_LOG_DEBUG("Calibrating DC servo");
+
+        WM8904RegWrite(g_wm8904_i2c_handle, WM8904_DC_SERVO_1,
+            dcs_mask << WM8904_DCS_TRIG_STARTUP_0_SHIFT, BYTE_NUM);
+
+        timeout = TIMEOUT_500;
+    }
+
+    /* Wait for DC servo to complete */
+    dcs_mask <<= WM8904_DCS_CAL_COMPLETE_SHIFT;
+    do {
+        WM8904RegRead(g_wm8904_i2c_handle, WM8904_DC_SERVO_READBACK_0, &val, BYTE_NUM);
+        if ((val & dcs_mask) == dcs_mask) {
+            break;
+        }
+        msleep(SLEEP_TIME_1);
+    } while (--timeout);
+
+    if ((val & dcs_mask) != dcs_mask) {
+        WM8904_CODEC_LOG_DEBUG("DC servo timed out");
+    } else {
+        WM8904_CODEC_LOG_DEBUG("DC servo ready");
+    }
+
+    /* Enable the output stage */
+    WM8904RegUpdateBits(g_wm8904_i2c_handle, reg,
+        WM8904_HPL_ENA_OUTP | WM8904_HPR_ENA_OUTP,
+        WM8904_HPL_ENA_OUTP | WM8904_HPR_ENA_OUTP, BYTE_NUM);
+}
+
+static int DapmPostPMD(struct stDcsParam dcsParam)
+{
+    int reg = dcsParam.reg;
+    int dcs_mask = dcsParam.dcs_mask;
+    int dcs_l = dcsParam.dcs_l;
+    int dcs_l_reg = dcsParam.dcs_l_reg, dcs_r_reg = dcsParam.dcs_r_reg;
+    int pwr_reg = dcsParam.pwr_reg;
+
+    /* Cache the DC servo configuration; this will be
+    * invalidated if we change the configuration. */
+    WM8904RegRead(g_wm8904_i2c_handle, dcs_l_reg, &(gpwm8904->dcs_state[dcs_l]), BYTE_NUM);
+    WM8904RegRead(g_wm8904_i2c_handle, dcs_r_reg, &(gpwm8904->dcs_state[dcs_l]), BYTE_NUM);
+
+    WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_DC_SERVO_0,
+        dcs_mask, 0, BYTE_NUM);
+
+    /* Disable the amplifier input and output stages */
+    WM8904RegUpdateBits(g_wm8904_i2c_handle, reg,
+        WM8904_HPL_ENA | WM8904_HPR_ENA |
+        WM8904_HPL_ENA_DLY | WM8904_HPR_ENA_DLY |
+        WM8904_HPL_ENA_OUTP | WM8904_HPR_ENA_OUTP,
+        0, BYTE_NUM);
+
+    /* PGAs too */
+    WM8904RegUpdateBits(g_wm8904_i2c_handle, pwr_reg,
+        WM8904_HPL_PGA_ENA | WM8904_HPR_PGA_ENA,
+        0, BYTE_NUM);
+    return 0;
+}
+
+static int getRegValue(int reg, int *dcs_r_reg, int* dcs_l_reg, int* dcs_l, int* dcs_r)
+{
+    if (dcs_r_reg == NULL || dcs_l_reg == NULL || dcs_l == NULL || dcs_r == NULL) {
+        return HDF_FAILURE;
+    }
+
+    switch (reg) {
+        case WM8904_ANALOGUE_HP_0:
+            *dcs_r_reg = WM8904_DC_SERVO_8;
+            *dcs_l_reg = WM8904_DC_SERVO_9;
+            *dcs_l = 0x0;
+            *dcs_r = 0x1;
+            break;
+
+        case WM8904_ANALOGUE_LINEOUT_0:
+            *dcs_r_reg = WM8904_DC_SERVO_6;
+            *dcs_l_reg = WM8904_DC_SERVO_7;
+            *dcs_l = BYTE_NUM;
+            *dcs_r = 0x3;
+            break;
+
+        default:
+            // nothing
+            break;
+    }
+    return 0;
+}
+
+
+int out_pga(int reg, int event)
+{
+    int val = 0, dcs_mask = 0, dcs_l = 0, dcs_r = 0, dcs_l_reg = 0;
+    int timeout = 0, dcs_r_reg = 0, pwr_reg = 0;
+    struct stDcsParam dcsParam = {0};
 
     /* This code is shared between HP and LINEOUT; we do all our
      * power management in stereo pairs to avoid latency issues so
@@ -447,127 +588,44 @@ int out_pga(int reg, int event)
         case WM8904_ANALOGUE_HP_0:
             pwr_reg = WM8904_POWER_MANAGEMENT_2;
             dcs_mask = WM8904_DCS_ENA_CHAN_0 | WM8904_DCS_ENA_CHAN_1;
-            dcs_r_reg = WM8904_DC_SERVO_8;
-            dcs_l_reg = WM8904_DC_SERVO_9;
-            dcs_l = 0;
-            dcs_r = 1;
             break;
         case WM8904_ANALOGUE_LINEOUT_0:
             pwr_reg = WM8904_POWER_MANAGEMENT_3;
             dcs_mask = WM8904_DCS_ENA_CHAN_2 | WM8904_DCS_ENA_CHAN_3;
-            dcs_r_reg = WM8904_DC_SERVO_6;
-            dcs_l_reg = WM8904_DC_SERVO_7;
-            dcs_l = BYTE_NUM;
-            dcs_r = 3;
             break;
         default:
-            WARN(1, "Invalid reg %d\n", reg);
             return -EINVAL;
     }
+    getRegValue(reg, &dcs_r_reg, &dcs_l_reg, &dcs_l, &dcs_r);
+
+    dcsParam.reg = reg;
+    dcsParam.dcs_mask = dcs_mask;
+    dcsParam.dcs_l = dcs_l;
+    dcsParam.dcs_r = dcs_r;
+    dcsParam.dcs_l_reg = dcs_l_reg;
+    dcsParam.dcs_r_reg = dcs_r_reg;
+    dcsParam.pwr_reg = pwr_reg;
 
     switch (event) {
         case SND_SOC_DAPM_PRE_PMU:
-            /* Power on the PGAs */
-            WM8904RegUpdateBits(g_wm8904_i2c_handle, pwr_reg,
-                WM8904_HPL_PGA_ENA | WM8904_HPR_PGA_ENA,
-                WM8904_HPL_PGA_ENA | WM8904_HPR_PGA_ENA, BYTE_NUM);
-
-            /* Power on the amplifier */
-            WM8904RegUpdateBits(g_wm8904_i2c_handle, reg,
-                WM8904_HPL_ENA | WM8904_HPR_ENA,
-                WM8904_HPL_ENA | WM8904_HPR_ENA, BYTE_NUM);
-
-            /* Enable the first stage */
-            WM8904RegUpdateBits(g_wm8904_i2c_handle, reg,
-                WM8904_HPL_ENA_DLY | WM8904_HPR_ENA_DLY,
-                WM8904_HPL_ENA_DLY | WM8904_HPR_ENA_DLY, BYTE_NUM);
-
-            /* Power up the DC servo */
-            WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_DC_SERVO_0,
-                                dcs_mask, dcs_mask, BYTE_NUM);
-
-            /* Either calibrate the DC servo or restore cached state
-            * if we have that.
-            */
-            if (gpwm8904->dcs_state[dcs_l] || gpwm8904->dcs_state[dcs_r]) {
-                WM8904_CODEC_LOG_DEBUG("Restoring DC servo state");
-
-                WM8904RegWrite(g_wm8904_i2c_handle, dcs_l_reg,
-                    gpwm8904->dcs_state[dcs_l], BYTE_NUM);
-                WM8904RegWrite(g_wm8904_i2c_handle, dcs_r_reg,
-                    gpwm8904->dcs_state[dcs_r], BYTE_NUM);
-
-                WM8904RegWrite(g_wm8904_i2c_handle, WM8904_DC_SERVO_1, dcs_mask, BYTE_NUM);
-
-                timeout = TIMEOUT_20;
-            } else {
-                WM8904_CODEC_LOG_DEBUG("Calibrating DC servo");
-
-                WM8904RegWrite(g_wm8904_i2c_handle, WM8904_DC_SERVO_1,
-                    dcs_mask << WM8904_DCS_TRIG_STARTUP_0_SHIFT, BYTE_NUM);
-
-                timeout = TIMEOUT_500;
-            }
-
-            /* Wait for DC servo to complete */
-            dcs_mask <<= WM8904_DCS_CAL_COMPLETE_SHIFT;
-            do {
-                WM8904RegRead(g_wm8904_i2c_handle, WM8904_DC_SERVO_READBACK_0, &val, BYTE_NUM);
-                if ((val & dcs_mask) == dcs_mask) {
-                    break;
-                }
-                msleep(SLEEP_TIME_1);
-            } while (--timeout);
-
-            if ((val & dcs_mask) != dcs_mask) {
-                WM8904_CODEC_LOG_DEBUG("DC servo timed out");
-            } else {
-                WM8904_CODEC_LOG_DEBUG("DC servo ready");
-            }
-
-            /* Enable the output stage */
-            WM8904RegUpdateBits(g_wm8904_i2c_handle, reg,
-                WM8904_HPL_ENA_OUTP | WM8904_HPR_ENA_OUTP,
-                WM8904_HPL_ENA_OUTP | WM8904_HPR_ENA_OUTP, BYTE_NUM);
+            DapmPrePMU(dcsParam);
             break;
 
         case SND_SOC_DAPM_POST_PMU:
             /* Unshort the output itself */
             WM8904RegUpdateBits(g_wm8904_i2c_handle, reg,
-                WM8904_HPL_RMV_SHORT |
-                WM8904_HPR_RMV_SHORT,
-                WM8904_HPL_RMV_SHORT |
-                WM8904_HPR_RMV_SHORT, BYTE_NUM);
-
+                WM8904_HPL_RMV_SHORT | WM8904_HPR_RMV_SHORT,
+                WM8904_HPL_RMV_SHORT | WM8904_HPR_RMV_SHORT, BYTE_NUM);
             break;
 
         case SND_SOC_DAPM_PRE_PMD:
             /* Short the output */
             WM8904RegUpdateBits(g_wm8904_i2c_handle, reg,
-                WM8904_HPL_RMV_SHORT |
-                WM8904_HPR_RMV_SHORT, 0, BYTE_NUM);
+                WM8904_HPL_RMV_SHORT | WM8904_HPR_RMV_SHORT, 0, BYTE_NUM);
             break;
 
         case SND_SOC_DAPM_POST_PMD:
-            /* Cache the DC servo configuration; this will be
-            * invalidated if we change the configuration. */
-            WM8904RegRead(g_wm8904_i2c_handle, dcs_l_reg, &(gpwm8904->dcs_state[dcs_l]), BYTE_NUM);
-            WM8904RegRead(g_wm8904_i2c_handle, dcs_r_reg, &(gpwm8904->dcs_state[dcs_l]), BYTE_NUM);
-
-            WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_DC_SERVO_0,
-                dcs_mask, 0, BYTE_NUM);
-
-            /* Disable the amplifier input and output stages */
-            WM8904RegUpdateBits(g_wm8904_i2c_handle, reg,
-                WM8904_HPL_ENA | WM8904_HPR_ENA |
-                WM8904_HPL_ENA_DLY | WM8904_HPR_ENA_DLY |
-                WM8904_HPL_ENA_OUTP | WM8904_HPR_ENA_OUTP,
-                0, BYTE_NUM);
-
-            /* PGAs too */
-            WM8904RegUpdateBits(g_wm8904_i2c_handle, pwr_reg,
-                WM8904_HPL_PGA_ENA | WM8904_HPR_PGA_ENA,
-                0, BYTE_NUM);
+            DapmPostPMD(dcsParam);
             break;
         default:
             // nothing to do
@@ -634,15 +692,19 @@ static struct {
     { 480, 20 },
 };
 
+#define BIT_WIDTH_16  (16)
+#define BIT_WIDTH_20  (20)
+#define BIT_WIDTH_24  (24)
+#define BIT_WIDTH_32  (32)
 static int Frame_To_Bit_Width(enum AudioFormat format, int *bitWidth)
 {
     switch (format) {
         case AUDIO_FORMAT_PCM_16_BIT:
-            *bitWidth = 16;
+            *bitWidth = BIT_WIDTH_16;
             break;
         case AUDIO_FORMAT_PCM_24_BIT:
         case AUDIO_FORMAT_PCM_32_BIT:
-            *bitWidth = 32;
+            *bitWidth = BIT_WIDTH_32;
             break;
         default:
             WM8904_CODEC_LOG_ERR("format: %d is not define", format);
@@ -659,17 +721,13 @@ int g_wm8904HwPara = 0;
 struct AudioPcmHwParams g_PcmParams = {0};
 #define FORMAT_HW  (16385)
 #define RATE_MULTIPLE (10)
+#define LOW_SAMPLE_RATES  (24000)
 int Wm8904DaiHwParamsSet(const struct AudioCard *card, const struct AudioPcmHwParams *param)
 {
-    int ret = 0, i = 0, best = 0, best_val = 0, cur_val = 0;
-    unsigned int aif1 = 0;
-    unsigned int aif2 = 0;
-    unsigned int aif3 = 0;
-    unsigned int clock1 = 0;
-    unsigned int dac_digital1 = 0;
-    int errno = 0;
-
     int fs = 0, width = 0, channel = 0, slots = 0, dir = 0;
+    int ret = 0, i = 0, best = 0, best_val = 0, cur_val = 0, errno = 0;
+    unsigned int aif1 = 0, aif2 = 0, aif3 = 0, clock1 = 0, dac_digital1 = 0;
+    
     errno = memcpy_s(&g_PcmParams, sizeof(struct AudioPcmHwParams), param, sizeof(struct AudioPcmHwParams));
     if (errno != 0) {
         WM8904_CODEC_LOG_ERR("Memcpy pcm parameters failed!");
@@ -680,11 +738,7 @@ int Wm8904DaiHwParamsSet(const struct AudioCard *card, const struct AudioPcmHwPa
     channel = param->channels;
     slots = 1;
 
-    if (param->streamType == AUDIO_RENDER_STREAM) {
-        dir = 1;
-    } else {
-        dir = 0;
-    }
+    dir = param->streamType == AUDIO_RENDER_STREAM ? 1 : 0;
 
     WM8904_Set_Fmt(FORMAT_HW);
     msleep(SLEEP_TIME_10);
@@ -694,19 +748,17 @@ int Wm8904DaiHwParamsSet(const struct AudioCard *card, const struct AudioPcmHwPa
     /* What BCLK do we need? */
     gpwm8904->fs = fs;
     gpwm8904->bclk = fs * width * channel * slots;
-    WM8904_CODEC_LOG_ERR("fs1 = %d tdm_width = %d channel = %d,tdm_slots =%d bclk = %d",
-                         fs, width, slots, channel, gpwm8904->bclk);
 
     switch (width) {
-        case 16:
+        case BIT_WIDTH_16:
             break;
-        case 20:
+        case BIT_WIDTH_20:
             aif1 |= 0x40;
             break;
-        case 24:
+        case BIT_WIDTH_24:
             aif1 |= 0x80;
             break;
-        case 32:
+        case BIT_WIDTH_32:
             aif1 |= 0xc0;
             break;
         default:
@@ -720,19 +772,15 @@ int Wm8904DaiHwParamsSet(const struct AudioCard *card, const struct AudioPcmHwPa
 
     /* Select nearest CLK_SYS_RATE */
     best = 0;
-    best_val = abs((gpwm8904->sysclk_rate / clk_sys_rates[0].ratio)
-               - gpwm8904->fs);
+    best_val = abs((gpwm8904->sysclk_rate / clk_sys_rates[0].ratio) - gpwm8904->fs);
     for (i = 1; i < ARRAY_SIZE(clk_sys_rates); i++) {
-        cur_val = abs((gpwm8904->sysclk_rate /
-                   clk_sys_rates[i].ratio) - gpwm8904->fs);
+        cur_val = abs((gpwm8904->sysclk_rate / clk_sys_rates[i].ratio) - gpwm8904->fs);
         if (cur_val < best_val) {
             best = i;
             best_val = cur_val;
         }
     }
-    WM8904_CODEC_LOG_DEBUG("Selected CLK_SYS_RATIO of %d", clk_sys_rates[best].ratio);
-        clock1 |= (clk_sys_rates[best].clk_sys_rate
-           << WM8904_CLK_SYS_RATE_SHIFT);
+    clock1 |= (clk_sys_rates[best].clk_sys_rate << WM8904_CLK_SYS_RATE_SHIFT);
 
     /* SAMPLE_RATE */
     best = 0;
@@ -746,11 +794,10 @@ int Wm8904DaiHwParamsSet(const struct AudioCard *card, const struct AudioPcmHwPa
         }
     }
         WM8904_CODEC_LOG_DEBUG("Selected SAMPLE_RATE of %dHz", sample_rates[best].rate);
-        clock1 |= (sample_rates[best].sample_rate
-           << WM8904_SAMPLE_RATE_SHIFT);
+        clock1 |= (sample_rates[best].sample_rate << WM8904_SAMPLE_RATE_SHIFT);
 
     /* Enable sloping stopband filter for low sample rates */
-    if (gpwm8904->fs <= 24000) {
+    if (gpwm8904->fs <= LOW_SAMPLE_RATES) {
         dac_digital1 |= WM8904_DAC_SB_FILT;
     }
 
@@ -758,8 +805,7 @@ int Wm8904DaiHwParamsSet(const struct AudioCard *card, const struct AudioPcmHwPa
     best = 0;
     best_val = INT_MAX;
     for (i = 0; i < ARRAY_SIZE(bclk_divs); i++) {
-        cur_val = ((gpwm8904->sysclk_rate * RATE_MULTIPLE) / bclk_divs[i].div)
-            - gpwm8904->bclk;
+        cur_val = ((gpwm8904->sysclk_rate * RATE_MULTIPLE) / bclk_divs[i].div) - gpwm8904->bclk;
         if (cur_val < 0) { /* Table is sorted */
             break;
         }
@@ -770,13 +816,7 @@ int Wm8904DaiHwParamsSet(const struct AudioCard *card, const struct AudioPcmHwPa
     }
     gpwm8904->bclk = (gpwm8904->sysclk_rate * RATE_MULTIPLE) / bclk_divs[best].div;
 
-        WM8904_CODEC_LOG_DEBUG("Selected BCLK_DIV of %d for %dHz BCLK\n", bclk_divs[best].div, gpwm8904->bclk);
-
     aif2 |= bclk_divs[best].bclk_div;
-
-    /* LRCLK is a simple fraction of BCLK */
-    WM8904_CODEC_LOG_DEBUG("LRCLK_RATE is %d\n", gpwm8904->bclk / gpwm8904->fs);
-
     aif3 |= gpwm8904->bclk / gpwm8904->fs;
 
     /* Apply the settings */
@@ -796,6 +836,88 @@ int Wm8904DaiHwParamsSet(const struct AudioCard *card, const struct AudioPcmHwPa
 }
 
 #define BITS_8  (8)
+static int TriggerRenderStart(void)
+{
+    WM8904_SET_BIAS_LEVEL(SND_SOC_BIAS_STANDBY);
+    msleep(SLEEP_TIME_10);
+    WM8904_SET_BIAS_LEVEL(SND_SOC_BIAS_PREPARE);
+    msleep(SLEEP_TIME_120);
+    WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_CLOCK_RATES_2, 0x7, 0x7, BYTE_NUM);
+    WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_CHARGE_PUMP_0, 0x1, 0x1, BYTE_NUM);
+    msleep(SLEEP_TIME_120);
+    WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_CLASS_W_0, 0xc, 0xc, BYTE_NUM);
+    out_pga(OUT_PGA_90, BYTE_NUM_1);
+    WM8904RegRead(g_wm8904_i2c_handle, OUT_PGA_90, &val, BYTE_NUM);
+    msleep(SLEEP_TIME);
+    out_pga(OUT_PGA_94, BYTE_NUM_1);
+    msleep(SLEEP_TIME);
+    out_pga(OUT_PGA_90, BYTE_NUM);
+    msleep(SLEEP_TIME_10);
+    out_pga(OUT_PGA_94, BYTE_NUM);
+    msleep(SLEEP_TIME_10);
+    WM8904_SET_BIAS_LEVEL(SND_SOC_BIAS_ON);
+    WM8904RegWrite(g_wm8904_i2c_handle, WM8904_POWER_MANAGEMENT_6, 0xc, BYTE_NUM);
+    msleep(SLEEP_TIME_10);
+    WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_DAC_DIGITAL_1, WM8904_DAC_MUTE, 0x0, BYTE_NUM);
+
+    return 0;
+}
+
+static int TriggerCaptureStart(void)
+{
+    WM8904_SET_BIAS_LEVEL(SND_SOC_BIAS_STANDBY);
+    msleep(SLEEP_TIME_10);
+    WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_MIC_BIAS_CONTROL_0, 0x1, 0x1, BYTE_NUM);
+    msleep(SLEEP_TIME);
+    WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_CLOCK_RATES_2, 0x6, 0x6, BYTE_NUM);
+    msleep(SLEEP_TIME);
+    WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_POWER_MANAGEMENT_0, 0x3, 0x3, BYTE_NUM);
+    msleep(SLEEP_TIME);
+    WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_POWER_MANAGEMENT_6, 0x3, 0x3, BYTE_NUM);
+    msleep(SLEEP_TIME);
+    WM8904_SET_BIAS_LEVEL(SND_SOC_BIAS_STANDBY);
+    msleep(SLEEP_TIME);
+    WM8904_SET_BIAS_LEVEL(SND_SOC_BIAS_PREPARE);
+    msleep(SLEEP_TIME);
+    WM8904_SET_BIAS_LEVEL(SND_SOC_BIAS_ON);
+    msleep(SLEEP_TIME);
+    WM8904RegWrite(g_wm8904_i2c_handle, WM8904_ANALOGUE_LEFT_INPUT_1, 0x45, BYTE_NUM);
+    msleep(SLEEP_TIME);
+    WM8904RegWrite(g_wm8904_i2c_handle, WM8904_ANALOGUE_RIGHT_INPUT_1, 0x45, BYTE_NUM);
+
+    return 0;
+}
+
+static int TriggerPause(void)
+{
+    WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_DAC_DIGITAL_1, WM8904_DAC_MUTE, BITS_8, BYTE_NUM);
+    msleep(SLEEP_TIME);
+    out_pga(OUT_PGA_90, BYTE_NUM_4);
+    msleep(SLEEP_TIME);
+    out_pga(OUT_PGA_94, BYTE_NUM_4);
+    msleep(SLEEP_TIME);
+    out_pga(OUT_PGA_90, BYTE_NUM_8);
+    msleep(SLEEP_TIME);
+    out_pga(OUT_PGA_94, BYTE_NUM_8);
+    msleep(SLEEP_TIME);
+
+    WM8904RegWrite(g_wm8904_i2c_handle, WM8904_POWER_MANAGEMENT_6, 0, BYTE_NUM);
+    msleep(SLEEP_TIME);
+    WM8904RegWrite(g_wm8904_i2c_handle, WM8904_CLOCK_RATES_2, 0, BYTE_NUM);
+    msleep(SLEEP_TIME);
+    WM8904RegWrite(g_wm8904_i2c_handle, WM8904_FLL_CONTROL_1, 0, BYTE_NUM);
+    msleep(SLEEP_TIME);
+    WM8904RegWrite(g_wm8904_i2c_handle, WM8904_CHARGE_PUMP_0, 0, BYTE_NUM);
+    msleep(SLEEP_TIME);
+
+    WM8904_SET_BIAS_LEVEL(SND_SOC_BIAS_PREPARE);
+    msleep(SLEEP_TIME);
+    WM8904_SET_BIAS_LEVEL(SND_SOC_BIAS_STANDBY);
+    msleep(SLEEP_TIME);
+    WM8904_SET_BIAS_LEVEL(SND_SOC_BIAS_OFF);
+
+    return 0;
+}
 int32_t Wm8904DaiTrigger(const struct AudioCard *audioCard, int cmd, const struct DaiDevice *dai)
 {
     WM8904_CODEC_LOG_ERR("cmd = %d ", cmd);
@@ -803,80 +925,18 @@ int32_t Wm8904DaiTrigger(const struct AudioCard *audioCard, int cmd, const struc
 
     switch (cmd) {
         case AUDIO_DRV_PCM_IOCTL_RENDER_START:
-            WM8904_SET_BIAS_LEVEL(SND_SOC_BIAS_STANDBY);
-            msleep(SLEEP_TIME_10);
-            WM8904_SET_BIAS_LEVEL(SND_SOC_BIAS_PREPARE);
-            msleep(SLEEP_TIME_120);
-            WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_CLOCK_RATES_2, 0x7, 0x7, BYTE_NUM);
-            WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_CHARGE_PUMP_0, 0x1, 0x1, BYTE_NUM);
-            msleep(SLEEP_TIME_120);
-            WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_CLASS_W_0, 0xc, 0xc, BYTE_NUM);
-            out_pga(OUT_PGA_90, BYTE_NUM_1);
-            WM8904RegRead(g_wm8904_i2c_handle, OUT_PGA_90, &val, BYTE_NUM);
-            msleep(SLEEP_TIME);
-            out_pga(OUT_PGA_94, BYTE_NUM_1);
-            msleep(SLEEP_TIME);
-            out_pga(OUT_PGA_90, BYTE_NUM);
-            msleep(SLEEP_TIME_10);
-            out_pga(OUT_PGA_94, BYTE_NUM);
-            msleep(SLEEP_TIME_10);
-            WM8904_SET_BIAS_LEVEL(SND_SOC_BIAS_ON);
-            WM8904RegWrite(g_wm8904_i2c_handle, WM8904_POWER_MANAGEMENT_6, 0xc, BYTE_NUM);
-            msleep(SLEEP_TIME_10);
-            WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_DAC_DIGITAL_1, WM8904_DAC_MUTE, 0x0, BYTE_NUM);
+            TriggerRenderStart();
             break;
 
         case AUDIO_DRV_PCMIOCTL_CAPUTRE_START:
             // record
-            WM8904_SET_BIAS_LEVEL(SND_SOC_BIAS_STANDBY);
-            msleep(SLEEP_TIME_10);
-            WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_MIC_BIAS_CONTROL_0, 0x1, 0x1, BYTE_NUM);
-            msleep(SLEEP_TIME);
-            WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_CLOCK_RATES_2, 0x6, 0x6, BYTE_NUM);
-            msleep(SLEEP_TIME);
-            WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_POWER_MANAGEMENT_0, 0x3, 0x3, BYTE_NUM);
-            msleep(SLEEP_TIME);
-            WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_POWER_MANAGEMENT_6, 0x3, 0x3, BYTE_NUM);
-            msleep(SLEEP_TIME);
-            WM8904_SET_BIAS_LEVEL(SND_SOC_BIAS_STANDBY);
-            msleep(SLEEP_TIME);
-            WM8904_SET_BIAS_LEVEL(SND_SOC_BIAS_PREPARE);
-            msleep(SLEEP_TIME);
-            WM8904_SET_BIAS_LEVEL(SND_SOC_BIAS_ON);
-            msleep(SLEEP_TIME);
-            WM8904RegWrite(g_wm8904_i2c_handle, WM8904_ANALOGUE_LEFT_INPUT_1, 0x45, BYTE_NUM);
-            msleep(SLEEP_TIME);
-            WM8904RegWrite(g_wm8904_i2c_handle, WM8904_ANALOGUE_RIGHT_INPUT_1, 0x45, BYTE_NUM);
+            TriggerCaptureStart();
             break;
 
         case AUDIO_DRV_PCM_IOCTL_RENDER_PAUSE:
         case AUDIO_DRV_PCM_IOCTL_RENDER_STOP:
             /* code */
-            WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_DAC_DIGITAL_1, WM8904_DAC_MUTE, BITS_8, BYTE_NUM);
-            msleep(SLEEP_TIME);
-            out_pga(OUT_PGA_90, BYTE_NUM_4);
-            msleep(SLEEP_TIME);
-            out_pga(OUT_PGA_94, BYTE_NUM_4);
-            msleep(SLEEP_TIME);
-            out_pga(OUT_PGA_90, BYTE_NUM_8);
-            msleep(SLEEP_TIME);
-            out_pga(OUT_PGA_94, BYTE_NUM_8);
-            msleep(SLEEP_TIME);
-
-            WM8904RegWrite(g_wm8904_i2c_handle, WM8904_POWER_MANAGEMENT_6, 0, BYTE_NUM);
-            msleep(SLEEP_TIME);
-            WM8904RegWrite(g_wm8904_i2c_handle, WM8904_CLOCK_RATES_2, 0, BYTE_NUM);
-            msleep(SLEEP_TIME);
-            WM8904RegWrite(g_wm8904_i2c_handle, WM8904_FLL_CONTROL_1, 0, BYTE_NUM);
-            msleep(SLEEP_TIME);
-            WM8904RegWrite(g_wm8904_i2c_handle, WM8904_CHARGE_PUMP_0, 0, BYTE_NUM);
-            msleep(SLEEP_TIME);
-
-            WM8904_SET_BIAS_LEVEL(SND_SOC_BIAS_PREPARE);
-            msleep(SLEEP_TIME);
-            WM8904_SET_BIAS_LEVEL(SND_SOC_BIAS_STANDBY);
-            msleep(SLEEP_TIME);
-            WM8904_SET_BIAS_LEVEL(SND_SOC_BIAS_OFF);
+            TriggerPause();
             break;
 
         case AUDIO_DRV_PCM_IOCTL_CAPTURE_PAUSE:
@@ -928,23 +988,20 @@ static int WM8904_Set_Sysclk(int clk_id, unsigned int freq)
     return 0;
 }
 
-static int WM8904_Set_Fmt(unsigned int fmt)
+static int Wm8904ChkMasterFormatMask(unsigned int fmt, unsigned int *aif1, unsigned int *aif2)
 {
-    unsigned int aif1 = 0;
-    unsigned int aif3 = 0;
-
     switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
         case SND_SOC_DAIFMT_CBS_CFS:
             break;
         case SND_SOC_DAIFMT_CBS_CFM:
-            aif3 |= WM8904_LRCLK_DIR;
+            *aif3 |= WM8904_LRCLK_DIR;
             break;
         case SND_SOC_DAIFMT_CBM_CFS:
-            aif1 |= WM8904_BCLK_DIR;
+            *aif1 |= WM8904_BCLK_DIR;
             break;
         case SND_SOC_DAIFMT_CBM_CFM:
-            aif1 |= WM8904_BCLK_DIR;
-            aif3 |= WM8904_LRCLK_DIR;
+            *aif1 |= WM8904_BCLK_DIR;
+            *aif3 |= WM8904_LRCLK_DIR;
             break;
         default:
             return -EINVAL;
@@ -952,22 +1009,31 @@ static int WM8904_Set_Fmt(unsigned int fmt)
 
     switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
         case SND_SOC_DAIFMT_DSP_B:
-            aif1 |= 0x3 | WM8904_AIF_LRCLK_INV;
+            *aif1 |= 0x3 | WM8904_AIF_LRCLK_INV;
             /* fall through */
         case SND_SOC_DAIFMT_DSP_A:
-            aif1 |= 0x3;
+            *aif1 |= 0x3;
             break;
         case SND_SOC_DAIFMT_I2S:
-            aif1 |= 0x2;
+            *aif1 |= 0x2;
             break;
         case SND_SOC_DAIFMT_RIGHT_J:
+            /* nothing */
             break;
         case SND_SOC_DAIFMT_LEFT_J:
-            aif1 |= 0x1;
+            *aif1 |= 0x1;
             break;
         default:
             return -EINVAL;
     }
+}
+
+static int WM8904_Set_Fmt(unsigned int fmt)
+{
+    unsigned int aif1 = 0;
+    unsigned int aif3 = 0;
+
+    Wm8904ChkMasterFormatMask(fmt, &aif1, &aif2);
 
     switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
         case SND_SOC_DAIFMT_DSP_A:
@@ -1091,19 +1157,26 @@ int find_i2c_client(struct device *dev, void *data)
     }
 }
 
+static int WM8904_set_soc_bias_on(void)
+{
+    WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_ANALOGUE_LEFT_INPUT_1,
+                        WM8904_L_MODE_MASK, 0x01, BYTE_NUM);
+    WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_ANALOGUE_RIGHT_INPUT_1,
+                        WM8904_R_MODE_MASK, 0x01, BYTE_NUM);
+    WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_MIC_BIAS_CONTROL_0,
+                        WM8904_MIC_DET_EINT, 0x01, BYTE_NUM);
+    g_cur_bias_level = SND_SOC_BIAS_STANDBY;
+
+    return 0;
+}
+
 int WM8904_SET_BIAS_LEVEL(enum snd_soc_bias_level level)
 {
     int ret = 0;
 
     switch (level) {
         case SND_SOC_BIAS_ON:
-            WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_ANALOGUE_LEFT_INPUT_1,
-                                WM8904_L_MODE_MASK, 0x01, BYTE_NUM);
-            WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_ANALOGUE_RIGHT_INPUT_1,
-                                WM8904_R_MODE_MASK, 0x01, BYTE_NUM);
-            WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_MIC_BIAS_CONTROL_0,
-                                WM8904_MIC_DET_EINT, 0x01, BYTE_NUM);
-            g_cur_bias_level = SND_SOC_BIAS_STANDBY;
+            WM8904_set_soc_bias_on();
             break;
         case SND_SOC_BIAS_PREPARE:
             /* VMID resistance BYTE_NUM*50k */
@@ -1146,7 +1219,7 @@ int WM8904_SET_BIAS_LEVEL(enum snd_soc_bias_level level)
 
             /* Bias current *0.5 */
             WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_BIAS_CONTROL_0,
-                                WM8904_ISEL_MASK, 0, BYTE_NUM);
+                WM8904_ISEL_MASK, 0, BYTE_NUM);
             g_cur_bias_level = SND_SOC_BIAS_STANDBY;
 
             break;
@@ -1161,7 +1234,7 @@ int WM8904_SET_BIAS_LEVEL(enum snd_soc_bias_level level)
                                 WM8904_BIAS_ENA, 0, BYTE_NUM);
 
             regulator_bulk_disable(ARRAY_SIZE(gpwm8904->supplies),
-                                gpwm8904->supplies);
+                                   gpwm8904->supplies);
             clk_disable_unprepare(gpwm8904->mclk);
             g_cur_bias_level = SND_SOC_BIAS_OFF;
             break;
@@ -1169,92 +1242,39 @@ int WM8904_SET_BIAS_LEVEL(enum snd_soc_bias_level level)
     return 0;
 }
 
-static int32_t Wm8904DriverInit(struct HdfDeviceObject *device)
+static int Wm8904RegConfig(void)
 {
-    struct i2c_client **data;
-    data = (struct i2c_client **)kzalloc(sizeof(struct i2c_client *), GFP_KERNEL);
-
-    bus_for_each_dev(&i2c_bus_type, NULL, (void*)(data), find_i2c_client);
-
-    struct i2c_client *i2c = *data;
-    if (i2c != NULL) {
-        WM8904_CODEC_LOG_DEBUG("find kernel %s device", i2c->name);
-    } else {
-        WM8904_CODEC_LOG_ERR("wm8904 i2c dev not exist");
-        return HDF_ERR_INVALID_OBJECT;
-    }
-
-    unsigned int val = 0;
-    int ret = 0, i = 0;
-
-    gpwm8904 = devm_kzalloc(&i2c->dev, sizeof(struct wm8904_priv),
-                            GFP_KERNEL);
-    if (gpwm8904 == NULL) {
-        return -ENOMEM;
-    }
-
-    g_wm8904_i2c_handle = WM8904I2cOpen();
-    ret = WM8904I2cAllRegDefautInit(g_wm8904_i2c_handle);
-
-    gpwm8904->mclk = devm_clk_get(&i2c->dev, "mclk");
-    if (IS_ERR(gpwm8904->mclk)) {
-        ret = PTR_ERR(gpwm8904->mclk);
-        WM8904_CODEC_LOG_ERR("Failed to get MCLK\n");
-        return ret;
-    }
-
-    i2c_set_clientdata(i2c, gpwm8904);
-    gpwm8904->pdata = i2c->dev.platform_data;
-
-    for (i = 0; i < ARRAY_SIZE(gpwm8904->supplies); i++) {
-        gpwm8904->supplies[i].supply = wm8904_supply_names[i];
-    }
-
-    ret = devm_regulator_bulk_get(&i2c->dev, ARRAY_SIZE(gpwm8904->supplies),
-                                  gpwm8904->supplies);
-    if (ret != 0) {
-            WM8904_CODEC_LOG_ERR("Failed to request supplies: %d", ret);
-            return ret;
-    }
-    ret = regulator_bulk_enable(ARRAY_SIZE(gpwm8904->supplies),
-                                gpwm8904->supplies);
-    if (ret != 0) {
-            WM8904_CODEC_LOG_ERR("Failed to enable supplies: %d", ret);
-            return ret;
-    }
+    int ret = 0;
 
     ret = WM8904RegRead(g_wm8904_i2c_handle, WM8904_SW_RESET_AND_ID, &val, BYTE_NUM);
-    WM8904_CODEC_LOG_DEBUG("WM8904_SW_RESET_AND_ID val=0x%x", val);
-
     if (ret < 0) {
-            WM8904_CODEC_LOG_ERR("Failed to read ID register: %d", ret);
-            regulator_bulk_disable(ARRAY_SIZE(gpwm8904->supplies), gpwm8904->supplies);
-            return 0;
+        regulator_bulk_disable(ARRAY_SIZE(gpwm8904->supplies), gpwm8904->supplies);
+        return 0;
     }
 
     if (val != 0x8904) {
-            WM8904_CODEC_LOG_ERR("Device is not a WM8904, ID is %x", val);
-            ret = -EINVAL;
-            regulator_bulk_disable(ARRAY_SIZE(gpwm8904->supplies), gpwm8904->supplies);
-            return 0;
+        regulator_bulk_disable(ARRAY_SIZE(gpwm8904->supplies), gpwm8904->supplies);
+        return -EINVAL;
     }
 
     ret = WM8904RegRead(g_wm8904_i2c_handle, WM8904_REVISION, &val, BYTE_NUM);
     if (ret < 0) {
-            WM8904_CODEC_LOG_ERR("Failed to read device revision: %d",
-                                 ret);
-            regulator_bulk_disable(ARRAY_SIZE(gpwm8904->supplies), gpwm8904->supplies);
-            return 0;
+        regulator_bulk_disable(ARRAY_SIZE(gpwm8904->supplies), gpwm8904->supplies);
+        return 0;
     }
-    WM8904_CODEC_LOG_DEBUG("revision %c", val + 'A');
-    WM8904_CODEC_LOG_DEBUG("WM8904_REVISION1 val=0x%x", val);
 
     ret = WM8904RegWrite(g_wm8904_i2c_handle, WM8904_SW_RESET_AND_ID, 0, BYTE_NUM);
     if (ret < 0) {
-            WM8904_CODEC_LOG_DEBUG("Failed to issue reset: %d", ret);
-            regulator_bulk_disable(ARRAY_SIZE(gpwm8904->supplies), gpwm8904->supplies);
-            return 0;
+        regulator_bulk_disable(ARRAY_SIZE(gpwm8904->supplies), gpwm8904->supplies);
+        return 0;
     }
+
+    return 0;
+}
+
+static int Wm8904UpdateReg(void)
+{
+    unsigned int i = 0;
 
     /* Change some default settings - latch VU and enable ZC */
     WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_ADC_DIGITAL_VOLUME_LEFT,
@@ -1287,18 +1307,14 @@ static int32_t Wm8904DriverInit(struct HdfDeviceObject *device)
                 continue;
             }
 
-            WM8904RegUpdateBits(g_wm8904_i2c_handle,
-                                WM8904_GPIO_CONTROL_1 + i,
-                                0xffff,
-                                gpwm8904->pdata->gpio_cfg[i], BYTE_NUM);
+            WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_GPIO_CONTROL_1 + i,
+                                0xffff, gpwm8904->pdata->gpio_cfg[i], BYTE_NUM);
         }
 
         /* Zero is the default value for these anyway */
         for (i = 0; i < WM8904_MIC_REGS; i++) {
-            WM8904RegUpdateBits(g_wm8904_i2c_handle,
-                                WM8904_MIC_BIAS_CONTROL_0 + i,
-                                0xffff,
-                                gpwm8904->pdata->mic_cfg[i], BYTE_NUM);
+            WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_MIC_BIAS_CONTROL_0 + i,
+                                0xffff, gpwm8904->pdata->mic_cfg[i], BYTE_NUM);
         }
     }
 
@@ -1312,10 +1328,67 @@ static int32_t Wm8904DriverInit(struct HdfDeviceObject *device)
     WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_BIAS_CONTROL_0,
                         WM8904_POBCTRL, 0, BYTE_NUM);
 
+    return 0;
+}
+
+static int32_t Wm8904DriverInit(struct HdfDeviceObject *device)
+{
+    struct i2c_client **data;
+    unsigned int val = 0;
+    int ret = 0, i = 0;
+    data = (struct i2c_client **)kzalloc(sizeof(struct i2c_client *), GFP_KERNEL);
+
+    bus_for_each_dev(&i2c_bus_type, NULL, (void*)(data), find_i2c_client);
+
+    struct i2c_client *i2c = *data;
+    if (i2c != NULL) {
+        WM8904_CODEC_LOG_DEBUG("find kernel %s device", i2c->name);
+    } else {
+        WM8904_CODEC_LOG_ERR("wm8904 i2c dev not exist");
+        return HDF_ERR_INVALID_OBJECT;
+    }
+
+    gpwm8904 = devm_kzalloc(&i2c->dev, sizeof(struct wm8904_priv), GFP_KERNEL);
+    if (gpwm8904 == NULL) {
+        return -ENOMEM;
+    }
+
+    g_wm8904_i2c_handle = WM8904I2cOpen();
+    ret = WM8904I2cAllRegDefautInit(g_wm8904_i2c_handle);
+
+    gpwm8904->mclk = devm_clk_get(&i2c->dev, "mclk");
+    if (IS_ERR(gpwm8904->mclk)) {
+        ret = PTR_ERR(gpwm8904->mclk);
+        WM8904_CODEC_LOG_ERR("Failed to get MCLK\n");
+        return ret;
+    }
+
+    i2c_set_clientdata(i2c, gpwm8904);
+    gpwm8904->pdata = i2c->dev.platform_data;
+
+    for (i = 0; i < ARRAY_SIZE(gpwm8904->supplies); i++) {
+        gpwm8904->supplies[i].supply = wm8904_supply_names[i];
+    }
+
+    ret = devm_regulator_bulk_get(&i2c->dev, ARRAY_SIZE(gpwm8904->supplies),
+                                  gpwm8904->supplies);
+    if (ret != 0) {
+            WM8904_CODEC_LOG_ERR("Failed to request supplies: %d", ret);
+            return ret;
+    }
+    ret = regulator_bulk_enable(ARRAY_SIZE(gpwm8904->supplies), gpwm8904->supplies);
+    if (ret != 0) {
+            WM8904_CODEC_LOG_ERR("Failed to enable supplies: %d", ret);
+            return ret;
+    }
+
+    Wm8904RegConfig();
+
+    Wm8904UpdateReg();
+
     regulator_bulk_disable(ARRAY_SIZE(gpwm8904->supplies), gpwm8904->supplies);
 
     WM8904StateInit(g_wm8904_i2c_handle);
-    WM8904_CODEC_LOG_INFO("Success.");
 
     return HDF_SUCCESS;
 }

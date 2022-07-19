@@ -51,6 +51,7 @@
 
 #define FSL_SAI_VERID_0301 (0x0301)
 struct fsl_sai *g_sai;
+#define BYTE_NUM  (8)
 
 static struct fsl_sai *GetDrvSai(const struct PlatformData *pd)
 {
@@ -71,17 +72,17 @@ int32_t SaiPrintAllRegister()
 {
     struct fsl_sai *sai = g_sai;
     u32 read_val = 0;
-    regmap_read(sai->regmap, FSL_SAI_TCSR(8), &read_val);
+    regmap_read(sai->regmap, FSL_SAI_TCSR(BYTE_NUM), &read_val);
     AUDIO_DRIVER_LOG_ERR("FSL_SAI_TCSR %08x", read_val);
-    regmap_read(sai->regmap, FSL_SAI_TCR1(8), &read_val);
+    regmap_read(sai->regmap, FSL_SAI_TCR1(BYTE_NUM), &read_val);
     AUDIO_DRIVER_LOG_ERR("FSL_SAI_TCR1 %08x", read_val);
-    regmap_read(sai->regmap, FSL_SAI_TCR2(8), &read_val);
+    regmap_read(sai->regmap, FSL_SAI_TCR2(BYTE_NUM), &read_val);
     AUDIO_DRIVER_LOG_ERR("FSL_SAI_TCR2 %08x", read_val);
-    regmap_read(sai->regmap, FSL_SAI_TCR3(8), &read_val);
+    regmap_read(sai->regmap, FSL_SAI_TCR3(BYTE_NUM), &read_val);
     AUDIO_DRIVER_LOG_ERR("FSL_SAI_TCR3 %08x", read_val);
-    regmap_read(sai->regmap, FSL_SAI_TCR4(8), &read_val);
+    regmap_read(sai->regmap, FSL_SAI_TCR4(BYTE_NUM), &read_val);
     AUDIO_DRIVER_LOG_ERR("FSL_SAI_TCR4 %08x", read_val);
-    regmap_read(sai->regmap, FSL_SAI_TCR5(8), &read_val);
+    regmap_read(sai->regmap, FSL_SAI_TCR5(BYTE_NUM), &read_val);
     AUDIO_DRIVER_LOG_ERR("FSL_SAI_TCR5 %08x", read_val);
     regmap_read(sai->regmap, FSL_SAI_TDR0, &read_val);
     AUDIO_DRIVER_LOG_ERR("FSL_SAI_TDR0 %08x", read_val);
@@ -370,8 +371,8 @@ static bool fsl_sai_volatile_reg(struct device *dev, unsigned int reg)
         return true;
     }
 
-    if (sai->reg_offset == 8 && (reg == FSL_SAI_VERID ||
-                                 reg == FSL_SAI_PARAM)) {
+    if (sai->reg_offset == BYTE_NUM && (reg == FSL_SAI_VERID ||
+                                        reg == FSL_SAI_PARAM)) {
         return true;
     }
 
@@ -596,11 +597,6 @@ static int fsl_sai_set_bclk(struct fsl_sai *sai, bool tx, u32 freq)
     u32 id = 0;
     int ret = 0;
 
-    /* Don't apply to slave mode */
-    if (sai->slave_mode[tx]) {
-        return 0;
-    }
-
     for (id = 0; id < FSL_SAI_MCLK_MAX; id++) {
         clk_rate = clk_get_rate(sai->mclk_clk[id]);
         if (!clk_rate) {
@@ -612,9 +608,6 @@ static int fsl_sai_set_bclk(struct fsl_sai *sai, bool tx, u32 freq)
         }
 
         ret = clk_rate - ratio * freq;
-
-        AUDIO_DRIVER_LOG_ERR("ratio %d for freq %dHz based on clock %ldHz\n",
-                             ratio, freq, clk_rate);
         /*
          * Drop the source that can not be
          * divided into the required rate.
@@ -622,9 +615,6 @@ static int fsl_sai_set_bclk(struct fsl_sai *sai, bool tx, u32 freq)
         if (ret != 0 && clk_rate / ret < RATE_1000) {
             continue;
         }
-
-        AUDIO_DRIVER_LOG_ERR("ratio %d for freq %dHz based on clock %ldHz\n",
-                             ratio, freq, clk_rate);
 
         if ((ratio % RATIO_2 == 0 && ratio >= RATIO_2 && ratio <= RATIO_512) ||
             (ratio == RATIO_1 && sai->verid.id >= FSL_SAI_VERID_0301)) {
@@ -638,12 +628,6 @@ static int fsl_sai_set_bclk(struct fsl_sai *sai, bool tx, u32 freq)
                 break;
             }
         }
-    }
-
-    if (saveratio == 0) {
-        AUDIO_DRIVER_LOG_ERR("failed to derive required %cx rate: %d\n",
-                             tx ? 'T' : 'R', freq);
-        return HDF_FAILURE;
     }
 
     /*
@@ -680,9 +664,6 @@ static int fsl_sai_set_bclk(struct fsl_sai *sai, bool tx, u32 freq)
         regmap_update_bits(sai->regmap, FSL_SAI_MCTL,
             FSL_SAI_MCTL_MCLK_EN, FSL_SAI_MCTL_MCLK_EN);
     }
-
-    AUDIO_DRIVER_LOG_ERR("best fit: clock id=%d, ratio=%d, deviation=%d\n",
-                         sai->mclk_id[tx], saveratio, savesub);
 
     return 0;
 }
@@ -840,7 +821,7 @@ int32_t SaiSetHwParams(const struct PlatformData *pd, const enum AudioStreamType
     }
 
     /* find a proper tcre setting */
-    for (i = 0; i < 8; i++) {
+    for (i = 0; i < BYTE_NUM; i++) {
         trce_mask = (1 << (i + 1)) - 1;
         if (__sw_hweight8(dl_cfg[dl_cfg_idx].mask[tx] & trce_mask) == pins) {
             break;
@@ -911,6 +892,7 @@ static int32_t SaiSetSysclkTr(struct fsl_sai *sai, int clk_id, unsigned int freq
     return HDF_SUCCESS;
 }
 
+#define RATIO_DIV  (8000)
 static int32_t fsl_sai_set_mclk_rate(struct fsl_sai *sai, int clk_id, unsigned int freq)
 {
     struct clk *p = sai->mclk_clk[clk_id], *pll = 0, *npll = 0;
@@ -929,7 +911,7 @@ static int32_t fsl_sai_set_mclk_rate(struct fsl_sai *sai, int clk_id, unsigned i
     }
 
     if (pll) {
-        npll = (do_div(ratio, 8000) ? sai->pll11k_clk : sai->pll8k_clk);
+        npll = (do_div(ratio, RATIO_DIV) ? sai->pll11k_clk : sai->pll8k_clk);
         if (!clk_is_match(pll, npll)) {
             ret = clk_set_parent(p, npll);
             if (ret < 0) {
@@ -1174,6 +1156,8 @@ int32_t SaiHwFree(const struct DaiData *pd, int isTx)
     return HDF_SUCCESS;
 }
 
+#define NUM_128  (128)
+#define DELAY_10 (10)
 int32_t SaiDriverInit(struct PlatformData *pd)
 {
     struct PrivPlatformData *ppd = (struct PrivPlatformData *)pd->dmaPrv;
@@ -1256,7 +1240,7 @@ int32_t SaiDriverInit(struct PlatformData *pd)
 
     sai->reg_offset = FSL_REG_OFFSET;
     sai->dataline = 0xFF;
-    sai->fifo_depth = 128;
+    sai->fifo_depth = NUM_128;
 
     ret = fsl_sai_read_dlcfg(ppd->pdev, "fsl,dataline", &sai->pcm_dl_cfg,
                              sai->dataline);
@@ -1428,7 +1412,7 @@ int32_t SaiTrigger(const struct DaiData *pd, int cmd, int isTx)
 
             /* TERE will remain set till the end of current frame */
             do {
-                udelay(10);
+                udelay(DELAY_10);
                 regmap_read(sai->regmap, FSL_SAI_xCSR(tx, offset), &xcsr);
             } while (((--count) && (xcsr)) & (FSL_SAI_CSR_TERE));
 
@@ -1462,6 +1446,8 @@ int32_t SaiTrigger(const struct DaiData *pd, int cmd, int isTx)
     return HDF_SUCCESS;
 }
 
+#define DELAY_1000  (1000)
+#define DELAY_2000  (2000)
 int32_t SaiRuntimeResume(const struct PlatformData *platformData)
 {
     struct fsl_sai *sai = GetDrvSai(platformData);
@@ -1504,7 +1490,7 @@ int32_t SaiRuntimeResume(const struct PlatformData *platformData)
 
     regmap_write(sai->regmap, FSL_SAI_TCSR(offset), FSL_SAI_CSR_SR);
     regmap_write(sai->regmap, FSL_SAI_RCSR(offset), FSL_SAI_CSR_SR);
-    usleep_range(1000, 2000);
+    usleep_range(DELAY_1000, DELAY_2000);
     regmap_write(sai->regmap, FSL_SAI_TCSR(offset), 0);
     regmap_write(sai->regmap, FSL_SAI_RCSR(offset), 0);
 

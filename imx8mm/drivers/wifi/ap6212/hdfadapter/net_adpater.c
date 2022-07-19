@@ -267,6 +267,7 @@ void hdf_netdev_linkstatuschanged(struct NetDevice *netDev)
     (void)netDev;
 }
 
+#define BYTE_NUM  (8)
 ProcessingResult hdf_netdev_specialethertypeprocess(const struct NetDevice *netDev, NetBuf *buff)
 {
     struct EtherHeader *header = NULL;
@@ -283,7 +284,7 @@ ProcessingResult hdf_netdev_specialethertypeprocess(const struct NetDevice *netD
 
     header = (struct EtherHeader *)NetBufGetAddress(buff, E_DATA_BUF);
 
-    protocol = (buff->data[PROTOCOL_12BIT] << 8) | buff->data[PROTOCOL_13BIT];
+    protocol = (buff->data[PROTOCOL_12BIT] << BYTE_NUM) | buff->data[PROTOCOL_13BIT];
     if (protocol != ETHER_TYPE_PAE) {
         HDF_LOGE("%s: return PROCESSING_CONTINUE", __func__);
         return PROCESSING_CONTINUE;
