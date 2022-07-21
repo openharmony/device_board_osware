@@ -833,7 +833,7 @@ int Wm8904DaiHwParamsSet(const struct AudioCard *card, const struct AudioPcmHwPa
     WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_AUDIO_INTERFACE_1, WM8904_AIF_WL_MASK, aif1, BYTE_NUM);
     WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_AUDIO_INTERFACE_2, WM8904_BCLK_DIV_MASK, aif2, BYTE_NUM);
     WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_AUDIO_INTERFACE_3, WM8904_LRCLK_RATE_MASK, aif3, BYTE_NUM);
-    WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_CLOCK_RATES_1, 
+    WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_CLOCK_RATES_1,
         WM8904_SAMPLE_RATE_MASK | WM8904_CLK_SYS_RATE_MASK, clock1, BYTE_NUM);
 
     /* Update filters for the new settings */
