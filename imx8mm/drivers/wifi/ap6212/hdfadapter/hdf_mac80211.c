@@ -713,27 +713,13 @@ int32_t WalDisconnect(NetDevice *netDev, uint16_t reasonCode)
     return retVal;
 }
 
-struct cfg80211_scan_request g_request;
-int32_t WalStartScan(NetDevice *netDev, struct WlanScanRequest *scanParam)
+int32_t WalBuildChannelInfo(struct wiphy* wiphy, struct WlanScanRequest *scanParam,
+                            struct cfg80211_scan_request **request)
 {
     int32_t loop;
     int32_t count = 0;
-    int32_t retVal = 0;
-    enum Ieee80211Band band = IEEE80211_BAND_2GHZ;
     struct ieee80211_channel *chan = NULL;
-    struct wiphy* wiphy = wrap_get_wiphy();
-
-    struct cfg80211_scan_request *request = &g_request;
-    
-    if (request == NULL) {
-        HDF_LOGE("%s: calloc request null!\n", __func__);
-        return HDF_FAILURE;
-    }
-
-    // basic info
-    request->wiphy = wiphy;
-    request->wdev = GET_NET_DEV_CFG80211_WIRELESS(netDev);
-    request->n_ssids = scanParam->ssidCount;
+    enum Ieee80211Band band = IEEE80211_BAND_2GHZ;
 
     // channel info
     if ((scanParam->freqs == NULL) || (scanParam->freqsCount == 0)) {
@@ -747,17 +733,16 @@ int32_t WalStartScan(NetDevice *netDev, struct WlanScanRequest *scanParam)
             if ((chan->flags & WIFI_CHAN_DISABLED) != 0) {
                 continue;
             }
-            request->channels[count++] = chan;
+            (*request)->channels[count++] = chan;
         }
     } else {
         for (loop = 0; loop < scanParam->freqsCount; loop++) {
             chan = GetChannelByFreq(wiphy, (uint16_t)(scanParam->freqs[loop]));
             if (chan == NULL) {
-                HDF_LOGE("%s: freq not found!freq=%d!\n", __func__, scanParam->freqs[loop]);
                 continue;
             }
 
-            request->channels[count++] = chan;
+            (*request)->channels[count++] = chan;
         }
     }
 
@@ -765,11 +750,14 @@ int32_t WalStartScan(NetDevice *netDev, struct WlanScanRequest *scanParam)
         HDF_LOGE("%s: invalid freq info!\n", __func__);
         return HDF_FAILURE;
     }
-    request->n_channels = count;
+    (*request)->n_channels = count;
 
-    // ssid info
-    count = 0;
-    loop = 0;
+    return HDF_SUCCESS;
+}
+
+int32_t WalBuildSSidInfo(struct WlanScanRequest *scanParam, struct cfg80211_scan_request **request)
+{
+    int32_t loop, count = 0, retVal = 0;
     if (scanParam->ssidCount > WPAS_MAX_SCAN_SSIDS) {
         HDF_LOGE("%s:unexpected numSsids!numSsids=%u", __func__, scanParam->ssidCount);
         return HDF_FAILURE;
@@ -780,7 +768,7 @@ int32_t WalStartScan(NetDevice *netDev, struct WlanScanRequest *scanParam)
         return HDF_SUCCESS;
     }
 
-    request->ssids = (struct cfg80211_ssid *)OsalMemCalloc(scanParam->ssidCount * sizeof(struct cfg80211_ssid));
+    (*request)->ssids = (struct cfg80211_ssid *)OsalMemCalloc(scanParam->ssidCount * sizeof(struct cfg80211_ssid));
     if (request->ssids == NULL) {
         HDF_LOGE("%s: calloc request->ssids null", __func__);
         return HDF_FAILURE;
@@ -795,25 +783,53 @@ int32_t WalStartScan(NetDevice *netDev, struct WlanScanRequest *scanParam)
             continue;
         }
 
-        request->ssids[count].ssid_len = scanParam->ssids[loop].ssidLen;
-        if (memcpy_s(request->ssids[count].ssid, OAL_IEEE80211_MAX_SSID_LEN, scanParam->ssids[loop].ssid,
+        (*request)->ssids[count].ssid_len = scanParam->ssids[loop].ssidLen;
+        if (memcpy_s((*request)->ssids[count].ssid, OAL_IEEE80211_MAX_SSID_LEN, scanParam->ssids[loop].ssid,
             scanParam->ssids[loop].ssidLen) != 0) {
             continue;
         }
         count++;
     }
-    request->n_ssids = count;
+    (*request)->n_ssids = count;
+
+    return HDF_SUCCESS;
+}
+
+struct cfg80211_scan_request g_request;
+int32_t WalStartScan(NetDevice *netDev, struct WlanScanRequest *scanParam)
+{
+    int32_t loop, count = 0, retVal = 0;
+    enum Ieee80211Band band = IEEE80211_BAND_2GHZ;
+    struct ieee80211_channel *chan = NULL;
+    struct wiphy* wiphy = wrap_get_wiphy();
+    struct cfg80211_scan_request *request = &g_request;
+    
+    if (request == NULL) {
+        return HDF_FAILURE;
+    }
+
+    // basic info
+    request->wiphy = wiphy;
+    request->wdev = GET_NET_DEV_CFG80211_WIRELESS(netDev);
+    request->n_ssids = scanParam->ssidCount;
+
+    if (WalBuildChannelInfo(wiphy, scanParam, &request) == HDF_FAILURE) {
+        return HDF_FAILURE;
+    }
+
+    // ssid info
+    if (WalBuildSSidInfo(scanParam, &request) == HDF_FAILURE) {
+        return HDF_FAILURE;
+    }
 
     // User Ie Info
     if (scanParam->extraIEsLen > 512) {
-        HDF_LOGE("%s:unexpected extra len!extraIesLen=%d", __func__, scanParam->extraIEsLen);
         return HDF_FAILURE;
     }
 
     if ((scanParam->extraIEs != NULL) && (scanParam->extraIEsLen != 0)) {
         request->ie = (uint8_t *)OsalMemCalloc(scanParam->extraIEsLen);
         if (request->ie == NULL) {
-            HDF_LOGE("%s: calloc request->ie null", __func__);
             if (request->ie != NULL) {
                 OsalMemFree((void*)request->ie);
                 request->ie = NULL;
@@ -827,7 +843,6 @@ int32_t WalStartScan(NetDevice *netDev, struct WlanScanRequest *scanParam)
 
     retVal = (int32_t)wl_cfg80211_ops.scan(wiphy, request);
     if (retVal < 0) {
-        HDF_LOGE("%s: scan Failed!", __func__);
         if (request != NULL) {
             if ((request)->ie != NULL) {
                 OsalMemFree((void*)(request->ie));
@@ -840,8 +855,6 @@ int32_t WalStartScan(NetDevice *netDev, struct WlanScanRequest *scanParam)
             OsalMemFree(request);
             request = NULL;
         }
-    } else {
-        HDF_LOGE("%s: scan OK!", __func__);
     }
 
     return retVal;

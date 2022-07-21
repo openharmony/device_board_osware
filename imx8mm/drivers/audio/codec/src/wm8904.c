@@ -722,33 +722,8 @@ struct AudioPcmHwParams g_PcmParams = {0};
 #define FORMAT_HW  (16385)
 #define RATE_MULTIPLE (10)
 #define LOW_SAMPLE_RATES  (24000)
-int Wm8904DaiHwParamsSet(const struct AudioCard *card, const struct AudioPcmHwParams *param)
+int WM8904GetAif1(int width, unsigned int *aif1)
 {
-    int fs = 0, width = 0, channel = 0, slots = 0, dir = 0;
-    int ret = 0, i = 0, best = 0, best_val = 0, cur_val = 0, errno = 0;
-    unsigned int aif1 = 0, aif2 = 0, aif3 = 0, clock1 = 0, dac_digital1 = 0;
-    
-    errno = memcpy_s(&g_PcmParams, sizeof(struct AudioPcmHwParams), param, sizeof(struct AudioPcmHwParams));
-    if (errno != 0) {
-        WM8904_CODEC_LOG_ERR("Memcpy pcm parameters failed!");
-    }
-
-    fs = param->rate;
-    Frame_To_Bit_Width(param->format, &width);
-    channel = param->channels;
-    slots = 1;
-
-    dir = param->streamType == AUDIO_RENDER_STREAM ? 1 : 0;
-
-    WM8904_Set_Fmt(FORMAT_HW);
-    msleep(SLEEP_TIME_10);
-    WM8904_Set_Sysclk(1, 0);
-    msleep(SLEEP_TIME_10);
-
-    /* What BCLK do we need? */
-    gpwm8904->fs = fs;
-    gpwm8904->bclk = fs * width * channel * slots;
-
     switch (width) {
         case BIT_WIDTH_16:
             break;
@@ -764,14 +739,13 @@ int Wm8904DaiHwParamsSet(const struct AudioCard *card, const struct AudioPcmHwPa
         default:
             return -EINVAL;
     }
+    return HDF_SUCCESS;
+}
 
-    ret = WM8904_Configure_Clocking();
-    if (ret != 0) {
-        return ret;
-    }
-
+void WM8904HwParamsGetClkRate(unsigned int *dac_digital1, unsigned int *aif2, unsigned int *aif3, unsigned int *clock1)
+{
+    int ret = 0, i = 0, best = 0, best_val = 0, cur_val = 0;
     /* Select nearest CLK_SYS_RATE */
-    best = 0;
     best_val = abs((gpwm8904->sysclk_rate / clk_sys_rates[0].ratio) - gpwm8904->fs);
     for (i = 1; i < ARRAY_SIZE(clk_sys_rates); i++) {
         cur_val = abs((gpwm8904->sysclk_rate / clk_sys_rates[i].ratio) - gpwm8904->fs);
@@ -780,7 +754,7 @@ int Wm8904DaiHwParamsSet(const struct AudioCard *card, const struct AudioPcmHwPa
             best_val = cur_val;
         }
     }
-    clock1 |= (clk_sys_rates[best].clk_sys_rate << WM8904_CLK_SYS_RATE_SHIFT);
+    *clock1 |= (clk_sys_rates[best].clk_sys_rate << WM8904_CLK_SYS_RATE_SHIFT);
 
     /* SAMPLE_RATE */
     best = 0;
@@ -793,12 +767,12 @@ int Wm8904DaiHwParamsSet(const struct AudioCard *card, const struct AudioPcmHwPa
             best_val = cur_val;
         }
     }
-        WM8904_CODEC_LOG_DEBUG("Selected SAMPLE_RATE of %dHz", sample_rates[best].rate);
-        clock1 |= (sample_rates[best].sample_rate << WM8904_SAMPLE_RATE_SHIFT);
+    WM8904_CODEC_LOG_DEBUG("Selected SAMPLE_RATE of %dHz", sample_rates[best].rate);
+    *clock1 |= (sample_rates[best].sample_rate << WM8904_SAMPLE_RATE_SHIFT);
 
     /* Enable sloping stopband filter for low sample rates */
     if (gpwm8904->fs <= LOW_SAMPLE_RATES) {
-        dac_digital1 |= WM8904_DAC_SB_FILT;
+        *dac_digital1 |= WM8904_DAC_SB_FILT;
     }
 
     /* BCLK_DIV */
@@ -815,17 +789,51 @@ int Wm8904DaiHwParamsSet(const struct AudioCard *card, const struct AudioPcmHwPa
         }
     }
     gpwm8904->bclk = (gpwm8904->sysclk_rate * RATE_MULTIPLE) / bclk_divs[best].div;
+    *aif2 |= bclk_divs[best].bclk_div;
+    *aif3 |= gpwm8904->bclk / gpwm8904->fs;
+}
 
-    aif2 |= bclk_divs[best].bclk_div;
-    aif3 |= gpwm8904->bclk / gpwm8904->fs;
+int Wm8904DaiHwParamsSet(const struct AudioCard *card, const struct AudioPcmHwParams *param)
+{
+    int fs = 0, width = 0, channel = 0, slots = 1, dir = 0, ret = 0, errno = 0;
+    unsigned int aif1 = 0, aif2 = 0, aif3 = 0, clock1 = 0, dac_digital1 = 0;
+    
+    errno = memcpy_s(&g_PcmParams, sizeof(struct AudioPcmHwParams), param, sizeof(struct AudioPcmHwParams));
+    if (errno != 0) {
+        WM8904_CODEC_LOG_ERR("Memcpy pcm parameters failed!");
+    }
+
+    fs = param->rate;
+    channel = param->channels;
+    dir = param->streamType == AUDIO_RENDER_STREAM ? 1 : 0;
+    Frame_To_Bit_Width(param->format, &width);
+
+    WM8904_Set_Fmt(FORMAT_HW);
+    msleep(SLEEP_TIME_10);
+    WM8904_Set_Sysclk(1, 0);
+    msleep(SLEEP_TIME_10);
+
+    /* What BCLK do we need? */
+    gpwm8904->fs = fs;
+    gpwm8904->bclk = fs * width * channel * slots;
+
+    ret = WM8904GetAif1(&aif1);
+    if (ret != 0) {
+        return ret;
+    }
+
+    ret = WM8904_Configure_Clocking();
+    if (ret != 0) {
+        return ret;
+    }
+    WM8904HwParamsGetClkRate(&dac_digital1, &aif2, &aif3, &clock1);
 
     /* Apply the settings */
     WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_DAC_DIGITAL_1, WM8904_DAC_SB_FILT, dac_digital1, BYTE_NUM);
     WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_AUDIO_INTERFACE_1, WM8904_AIF_WL_MASK, aif1, BYTE_NUM);
     WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_AUDIO_INTERFACE_2, WM8904_BCLK_DIV_MASK, aif2, BYTE_NUM);
     WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_AUDIO_INTERFACE_3, WM8904_LRCLK_RATE_MASK, aif3, BYTE_NUM);
-    WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_CLOCK_RATES_1,
-                        WM8904_SAMPLE_RATE_MASK | WM8904_CLK_SYS_RATE_MASK, clock1, BYTE_NUM);
+    WM8904RegUpdateBits(g_wm8904_i2c_handle, WM8904_CLOCK_RATES_1, WM8904_SAMPLE_RATE_MASK | WM8904_CLK_SYS_RATE_MASK, clock1, BYTE_NUM);
 
     /* Update filters for the new settings */
     WM8904_Set_Retune_Mobile();
