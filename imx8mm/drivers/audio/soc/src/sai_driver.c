@@ -258,7 +258,6 @@ static irqreturn_t fsl_sai_isr(int irq, void *devid)
 
     /* Rx IRQ */
     irq_none = fsl_sai_rx_irq(irq, devid);
-
     if (irq_none) {
         return IRQ_NONE;
     } else {
@@ -692,15 +691,17 @@ static int fsl_sai_set_bclk(struct fsl_sai *sai, bool tx, u32 freq)
 
     return 0;
 }
-struct fsl_hwParams_register
-{
+struct fsl_hwParams_register {
     u32 cr3;
     u32 cr4;
     u32 cr5;
     u32 mr;
 };
 
-int32_t SaiGetHwParams(const struct PlatformData *pd, const enum AudioStreamType streamType, u32 *channels, u32 *rate, u32 *word_width)
+int32_t SaiGetHwParams(const struct PlatformData *pd,
+                       const enum AudioStreamType streamType,
+                       u32 *channels, u32 *rate,
+                       u32 *word_width)
 {
     int32_t ret = 0;
 
@@ -783,7 +784,7 @@ u32 SaiGetHwParamsCR5(struct fsl_sai *sai, u32 slot_width, u32 word_width)
 }
 
 u32 SaiGetHwParamsCR4(struct fsl_sai *sai, u32 slot_width, u32 slots)
-{    
+{
     u32 val_cr4 = 0;
 
     if (!sai->is_dsp_mode) {
@@ -802,7 +803,6 @@ u32 SaiGetdlMask(struct fsl_sai *sai, bool tx, u32 pins)
 {
     int32_t i = 0, dl_cfg_cnt, dl_cfg_idx = 0;
     struct fsl_sai_dl_cfg *dl_cfg = NULL;
-    
 
     sai->is_dsd = false;
     dl_cfg = sai->pcm_dl_cfg;
@@ -877,7 +877,8 @@ SaiSetHwParamsRegister(struct fsl_sai *sai, bool tx, struct fsl_hwParams_registe
 int32_t SaiSetHwParams(const struct PlatformData *pd, const enum AudioStreamType streamType)
 {
     struct fsl_sai *sai = GetDrvSai(pd);
-    u32 channels = 0, rate = 0, word_width = 0, pins = 0, bclk = 0, slot_width = word_width, slots = (channels == 1) ? 2 : channels;
+    u32 channels = 0, rate = 0, word_width = 0, pins = 0, bclk = 0
+    u32 slot_width = word_width, slots = (channels == 1) ? 2 : channels;
     bool tx = streamType == AUDIO_RENDER_STREAM;
     struct fsl_hwParams_register val;
     int32_t trce_mask = 0, ret = 0;
@@ -1166,7 +1167,6 @@ static int32_t SaiSetDaiFmtTr(struct PrivPlatformData *ppd, unsigned int fmt, in
         return -EINVAL;
     }
 
-
     sai->slave_mode[tx] = false;
 
     /* DAI clock master masks */
@@ -1452,9 +1452,9 @@ void SaiTriggerStart(struct fsl_sai *sai, bool tx, u8 channels, u32 dl_mask, u32
      * Tx sync with Rx clocks: Clear SYNC for Rx, set it for Tx.
     */
     regmap_update_bits(sai->regmap, FSL_SAI_TCR2(offset), FSL_SAI_CR2_SYNC,
-                        sai->synchronous[TX] ? FSL_SAI_CR2_SYNC : 0);
+                       sai->synchronous[TX] ? FSL_SAI_CR2_SYNC : 0);
     regmap_update_bits(sai->regmap, FSL_SAI_RCR2(offset), FSL_SAI_CR2_SYNC,
-                        sai->synchronous[RX] ? FSL_SAI_CR2_SYNC : 0);
+                       sai->synchronous[RX] ? FSL_SAI_CR2_SYNC : 0);
 
     while (tx && i < channels) {
         if (dl_mask & (1 << j)) {
@@ -1470,22 +1470,22 @@ void SaiTriggerStart(struct fsl_sai *sai, bool tx, u8 channels, u32 dl_mask, u32
     }
 
     regmap_update_bits(sai->regmap, FSL_SAI_xCSR(tx, offset),
-                        FSL_SAI_CSR_FRDE, FSL_SAI_CSR_FRDE);
+                       FSL_SAI_CSR_FRDE, FSL_SAI_CSR_FRDE);
 
     regmap_update_bits(sai->regmap, FSL_SAI_xCSR(tx, offset),
-                        FSL_SAI_CSR_TERE, FSL_SAI_CSR_TERE);
+                       FSL_SAI_CSR_TERE, FSL_SAI_CSR_TERE);
     regmap_update_bits(sai->regmap, FSL_SAI_xCSR(tx, offset),
-                        FSL_SAI_CSR_SE, FSL_SAI_CSR_SE);
+                       FSL_SAI_CSR_SE, FSL_SAI_CSR_SE);
     if (!sai->synchronous[TX] && sai->synchronous[RX] && !tx) {
         regmap_update_bits(sai->regmap, FSL_SAI_xCSR((!tx), offset),
-                            FSL_SAI_CSR_TERE, FSL_SAI_CSR_TERE);
+                           FSL_SAI_CSR_TERE, FSL_SAI_CSR_TERE);
     } else if (!sai->synchronous[RX] && sai->synchronous[TX] && tx) {
         regmap_update_bits(sai->regmap, FSL_SAI_xCSR((!tx), offset),
-                            FSL_SAI_CSR_TERE, FSL_SAI_CSR_TERE);
+                           FSL_SAI_CSR_TERE, FSL_SAI_CSR_TERE);
     }
 
     regmap_update_bits(sai->regmap, FSL_SAI_xCSR(tx, offset),
-                        FSL_SAI_CSR_xIE_MASK, FSL_SAI_FLAGS);
+                       FSL_SAI_CSR_xIE_MASK, FSL_SAI_FLAGS);
 }
 void SaiTriggerStop(struct fsl_sai *sai, bool tx)
 {
