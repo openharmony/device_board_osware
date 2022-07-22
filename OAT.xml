@@ -59,6 +59,7 @@ Note:If the text contains special characters, please escape them according to th
             <policy name="projectPolicy" desc="">
                 <policyitem type="copyright" name="Broadcom Corporation" path=".*" rule="may" group="defaultGroup" filefilter="copyrightPolicyFilter" desc=""/>
                 <policyitem type="copyright" name="Beijing OSWare Technology Co., Ltd" path=".*" rule="may" group="defaultGroup" filefilter="copyrightPolicyFilter" desc=""/>
+                <policyitem type="license" name="EndUserLicenseAgreement" path=".*"  desc="License Header Invalid"/>
             </policy>
         </policylist>
         <filefilterlist>
