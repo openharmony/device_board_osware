@@ -59,11 +59,11 @@ ohos_shared_library("camera_v4l2_adapter") {
   sources = [
     "//drivers/peripheral/camera/hal/adapter/platform/v4l2/src/driver_adapter/src/v4l2_control.cpp",
     "//drivers/peripheral/camera/hal/adapter/platform/v4l2/src/driver_adapter/src/v4l2_uvc.cpp",
+    "src/imx8mm_image_buffer.cpp",
     "src/v4l2_buffer.cpp",
     "src/v4l2_dev.cpp",
     "src/v4l2_fileformat.cpp",
     "src/v4l2_stream.cpp",
-    "src/imx8mm_image_buffer.cpp",
   ]
 
   include_dirs = [
