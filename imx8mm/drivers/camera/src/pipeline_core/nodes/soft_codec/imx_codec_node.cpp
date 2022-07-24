@@ -76,13 +76,12 @@ RetCode IMXCodecNode::Flush(const int32_t streamId)
 void yuvtorgb(int y, int u, int v, int sign, unsigned char *pixel32)
 {
     int r, g, b, a;
-    static long int ruv, guv, buv;
+    static long long ruv, guv, buv;
 
     if (sign) {
-        ruv = static_cast<long int>(val_num_1159 * (v - val_num_128));
-        guv = static_cast<long int>(val_num_380 * (u - val_num_128) +
-            val_num_813 * (v - val_num_128));
-        buv = static_cast<long int>(val_num_2018 * (u - val_num_128));
+        ruv = val_num_1159 * (v - val_num_128);
+        guv = val_num_380 * (u - val_num_128) + val_num_813 * (v - val_num_128);
+        buv = val_num_2018 * (u - val_num_128);
     }
 
     r = (val_num_1164 * (y - val_num_16) + ruv) / val_num_1000;

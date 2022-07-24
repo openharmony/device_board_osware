@@ -84,25 +84,19 @@ int32_t DMAInitTxBuff(struct PlatformData *platformData)
 
     AUDIO_DRIVER_LOG_ERR("%s", __func__);
     if (platformData == NULL) {
-        AUDIO_DRIVER_LOG_ERR("input para is NULL");
         return HDF_FAILURE;
     }
 
     ppd = (struct PrivPlatformData *)platformData->dmaPrv;
     dev = &ppd->pdev->dev;
 
-    gfp_flags = GFP_KERNEL
-        | __GFP_COMP
-        | __GFP_NORETRY
-        | __GFP_NOWARN;
-
+    gfp_flags = GFP_KERNEL | __GFP_COMP | __GFP_NORETRY | __GFP_NOWARN;
     if (platformData->renderBufInfo.virtAddr != NULL) {
         return HDF_SUCCESS;
     }
 
     buffSize = platformData->renderBufInfo.periodCount * platformData->renderBufInfo.periodSize;
     if (buffSize < MIN_AIAO_BUFF_SIZE || buffSize > MAX_AIAO_BUFF_SIZE) {
-        AUDIO_DRIVER_LOG_ERR("buffSize is invlid size = %d", buffSize);
         return HDF_FAILURE;
     }
 
@@ -110,49 +104,34 @@ int32_t DMAInitTxBuff(struct PlatformData *platformData)
     platformData->renderBufInfo.virtAddr = dma_alloc_coherent(dev, buffSize,
         (dma_addr_t *)&platformData->renderBufInfo.phyAddr, gfp_flags);
     if (platformData->renderBufInfo.virtAddr == NULL) {
-        AUDIO_DRIVER_LOG_ERR("mem alloc failed");
         return HDF_FAILURE;
     }
-
-    AUDIO_DRIVER_LOG_ERR("dma buffer size %d", buffSize);
 
     platformData->renderBufInfo.cirBufSize = buffSize;
 
     ppd->dma_chan_tx = dma_request_slave_channel(dev, "tx");
     if (!ppd->dma_chan_tx) {
-        AUDIO_DRIVER_LOG_ERR("cannot get the DMA channel.");
         return HDF_FAILURE;
     }
 
     slave_config.direction = DMA_MEM_TO_DEV;
     slave_config.dst_addr = ppd->dma_addr_dst;
-    AUDIO_DRIVER_LOG_ERR("dma addr dst = %08x", slave_config.dst_addr);
     if (platformData->renderPcmInfo.bitWidth == BIT_WIDTH16) {
         slave_config.dst_addr_width = DMA_SLAVE_BUSWIDTH_2_BYTES;
     } else if (platformData->renderPcmInfo.bitWidth == BIT_WIDTH32) {
         slave_config.dst_addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
     } else {
-        AUDIO_DRIVER_LOG_ERR("bit width is invalid");
         return HDF_FAILURE;
     }
 
     slave_config.dst_maxburst = ppd->dma_maxburst_tx;
-    AUDIO_DRIVER_LOG_ERR("dma addr dst = %08x", slave_config.dst_addr);
-    AUDIO_DRIVER_LOG_ERR("dma phyaddr = %08x", platformData->renderBufInfo.phyAddr);
-    AUDIO_DRIVER_LOG_ERR("dma maxburst = %d", slave_config.dst_maxburst);
-    AUDIO_DRIVER_LOG_ERR("dma dst_addr_width = %d", slave_config.dst_addr_width);
-    AUDIO_DRIVER_LOG_ERR("dma period size = %d", platformData->renderBufInfo.periodSize);
 
     ret = dmaengine_slave_config(ppd->dma_chan_tx, &slave_config);
     if (ret) {
-        AUDIO_DRIVER_LOG_ERR("err in TX dma configuration");
         return HDF_FAILURE;
     }
 
     ppd->tx_dma_pos = 0;
-    AUDIO_DRIVER_LOG_ERR("phyAttr = %x virtAddr = %x",
-                         platformData->renderBufInfo.phyAddr,
-                         platformData->renderBufInfo.virtAddr);
 
     return HDF_SUCCESS;
 }
@@ -302,24 +281,18 @@ int32_t DMAInitRxBuff(struct PlatformData *platformData)
 
     AUDIO_DRIVER_LOG_ERR("%s", __func__);
     if (platformData == NULL) {
-        AUDIO_DRIVER_LOG_ERR("input para is NULL");
         return HDF_FAILURE;
     }
     ppd = (struct PrivPlatformData *)platformData->dmaPrv;
     dev = &ppd->pdev->dev;
 
-    gfp_flags = GFP_KERNEL
-        | __GFP_COMP
-        | __GFP_NORETRY
-        | __GFP_NOWARN;
-
+    gfp_flags = GFP_KERNEL | __GFP_COMP | __GFP_NORETRY | __GFP_NOWARN;
     if (platformData->captureBufInfo.virtAddr != NULL) {
         return HDF_SUCCESS;
     }
 
     buffSize = platformData->captureBufInfo.periodCount * platformData->captureBufInfo.periodSize;
     if (buffSize < MIN_AIAO_BUFF_SIZE || buffSize > MAX_AIAO_BUFF_SIZE) {
-        AUDIO_DRIVER_LOG_ERR("buffSize is invalid.");
         return HDF_FAILURE;
     }
 
@@ -327,14 +300,12 @@ int32_t DMAInitRxBuff(struct PlatformData *platformData)
     platformData->captureBufInfo.virtAddr = dma_alloc_coherent(dev, buffSize,
         (dma_addr_t *)&platformData->captureBufInfo.phyAddr, gfp_flags);
     if (platformData->captureBufInfo.virtAddr == NULL) {
-        AUDIO_DRIVER_LOG_ERR("mem alloc failed");
         return HDF_FAILURE;
     }
     platformData->captureBufInfo.cirBufSize = buffSize;
 
     ppd->dma_chan_rx = dma_request_slave_channel(dev, "rx");
     if (!ppd->dma_chan_rx) {
-        AUDIO_DRIVER_LOG_ERR("cannot get the DMA channel");
         return HDF_FAILURE;
     }
 
@@ -345,22 +316,17 @@ int32_t DMAInitRxBuff(struct PlatformData *platformData)
     } else if (platformData->capturePcmInfo.bitWidth == BIT_WIDTH32) {
         slave_config.src_addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
     } else {
-        AUDIO_DRIVER_LOG_ERR("bit width is invalid");
         return HDF_FAILURE;
     }
 
     slave_config.src_maxburst = ppd->dma_maxburst_rx;
     ret = dmaengine_slave_config(ppd->dma_chan_rx, &slave_config);
     if (ret) {
-        AUDIO_DRIVER_LOG_ERR("err in RX dma configuration");
         return HDF_FAILURE;
     }
 
     ppd->rx_dma_pos = 0;
     ppd->rx_read_pos = 0;
-    AUDIO_DRIVER_LOG_DEBUG("phyAddr = %x virtAddr = %x",
-                           platformData->data->captureBufInfo.phyAddr,
-                           platformData->data->captureBufInfo.virtAddr);
 
     return HDF_SUCCESS;
 }
