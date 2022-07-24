@@ -32,6 +32,7 @@
 #include "v4l2_temp.h"
 #endif
 #include "v4l2_common.h"
+#include "imx8mm_image_buffer.h"
 
 typedef struct AdapterBuffer {
     void* start;
@@ -71,6 +72,8 @@ private:
 
     enum v4l2_memory memoryType_;
     enum v4l2_buf_type bufferType_;
+
+    Imx8mmImageAdditionalInfo *additional_info_;
 };
 } // namespace OHOS::Camera
 #endif // HOS_CAMERA_V4L2_BUFFER_H

@@ -557,7 +557,7 @@ int32_t WalRemoveIf(struct NetDevice *netDev, WifiIfRemove *ifRemove)
         return HDF_FAILURE;
     }
 
-    removeNetdev = NetDeviceGetInstByName((const char*)(ifRemove->ifname));
+    removeNetdev = NetDeviceGetInstByName((const char*)(ifRemove->ifName));
     if (removeNetdev == NULL) {
         return HDF_FAILURE;
     }

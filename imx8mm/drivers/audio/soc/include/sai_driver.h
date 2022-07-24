@@ -185,7 +185,7 @@
 
 /* SAI Transmit and Receive Configuration 3 Register */
 #define FSL_SAI_CR3_TRCE_MASK    (0xff << 16)
-#define FSL_SAI_CR3_TRCE(x)      ((x) << 16))
+#define FSL_SAI_CR3_TRCE(x)      ((x) << 16)
 #define FSL_SAI_CR3_WDFL(x)      (x)
 #define FSL_SAI_CR3_WDFL_MASK    (0x1f)
 

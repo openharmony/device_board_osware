@@ -1211,7 +1211,6 @@ int32_t SaiDriverInit(struct PlatformData *pd)
     char tmp[8];
     int irq = 0, ret = 0, i = 0;
     unsigned long clk_rate = 0;
-    int ret = 0;
 
     sai = &ppd->sai;
     g_sai = sai;

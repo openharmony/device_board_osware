@@ -1335,7 +1335,7 @@ static int32_t CodecDriverInit(struct HdfDeviceObject *device)
         return ret;
     }
 
-    if (CodecSetConfigInfo(&g_g8904_codec_data, &g_g8904_codec_dai_data) != HDF_SUCCESS) {
+    if (CodecSetConfigInfoOfControls(&g_g8904_codec_data, &g_g8904_codec_dai_data) != HDF_SUCCESS) {
         WM8904_CODEC_LOG_ERR("set config info failed.");
         return HDF_FAILURE;
     }
