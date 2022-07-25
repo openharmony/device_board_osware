@@ -769,7 +769,7 @@ int32_t WalBuildSSidInfo(struct WlanScanRequest *scanParam, struct cfg80211_scan
     }
 
     (*request)->ssids = (struct cfg80211_ssid *)OsalMemCalloc(scanParam->ssidCount * sizeof(struct cfg80211_ssid));
-    if (request->ssids == NULL) {
+    if ((*request)->ssids == NULL) {
         HDF_LOGE("%s: calloc request->ssids null", __func__);
         return HDF_FAILURE;
     }

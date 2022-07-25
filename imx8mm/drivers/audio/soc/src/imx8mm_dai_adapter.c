@@ -336,6 +336,7 @@ static int32_t DaiFindDeviceFromBus(struct device *dev, void *para)
 #define MCLK_BITS_OFFSET  (20)
 static int32_t DaiInit(struct DaiHost * daiHost, struct HdfDeviceObject *device)
 {
+    int ret = 0;
     struct PrivDaiData *pdd;
     struct device_node *codec_np = NULL, *gpr_np;
     struct i2c_client *codec_dev;

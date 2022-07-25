@@ -70,8 +70,6 @@ int32_t Imx8mmDmaBufFree(struct PlatformData *data, const enum AudioStreamType s
 int32_t  Imx8mmDmaRequestChannel(const struct PlatformData *data, const enum AudioStreamType streamType)
 {
     int32_t ret;
-    const int channelMin = 1;
-    const int channelMax = 2;
     uint32_t fmt = 0, freq = 0, clkId = 0, rate = 0, bitWidth = 0;
     int channel = 0;
     g_dmaRequestChannel = false;

@@ -68,7 +68,7 @@ static struct fsl_sai *GetDrvSai(const struct PlatformData *pd)
     return NULL;
 }
 
-int32_t SaiPrintTFRegister()
+int32_t SaiPrintTFRegister(void)
 {
     struct fsl_sai *sai = g_sai;
     u32 read_val = 0;
@@ -93,7 +93,7 @@ int32_t SaiPrintTFRegister()
     return 0;
 }
 
-int32_t SaiPrintTDRegister()
+int32_t SaiPrintTDRegister(void)
 {
     struct fsl_sai *sai = g_sai;
     u32 read_val = 0;
@@ -118,7 +118,7 @@ int32_t SaiPrintTDRegister()
     return 0;
 }
 
-int32_t SaiPrintAllRegister()
+int32_t SaiPrintAllRegister(void)
 {
     struct fsl_sai *sai = g_sai;
     u32 read_val = 0;
@@ -769,7 +769,7 @@ int32_t SaiSetHwParamsClk(struct fsl_sai *sai, bool tx, u32 bclk, const enum Aud
 
 u32 SaiGetHwParamsCR5(struct fsl_sai *sai, u32 slot_width, u32 word_width)
 {
-    u32 val_cr5;
+    u32 val_cr5 = 0;
 
     val_cr5 |= FSL_SAI_CR5_WNW(slot_width);
     val_cr5 |= FSL_SAI_CR5_W0W(slot_width);
@@ -822,7 +822,8 @@ u32 SaiGetdlMask(struct fsl_sai *sai, bool tx, u32 pins)
     return dl_cfg[dl_cfg_idx].mask[tx];
 }
 
-SaiSetHwParamsRegister(struct fsl_sai *sai, bool tx, struct fsl_hwParams_register *val, unsigned int dl_mask)
+u32 SaiSetHwParamsRegister(struct fsl_sai *sai, bool tx, 
+    struct fsl_hwParams_register *val, unsigned int dl_mask)
 {
     unsigned char offset = sai->reg_offset;
 
@@ -875,14 +876,14 @@ SaiSetHwParamsRegister(struct fsl_sai *sai, bool tx, struct fsl_hwParams_registe
 int32_t SaiSetHwParams(const struct PlatformData *pd, const enum AudioStreamType streamType)
 {
     struct fsl_sai *sai = GetDrvSai(pd);
-    u32 channels = 0, rate = 0, word_width = 0, pins = 0, bclk = 0
+    u32 channels = 0, rate = 0, word_width = 0, pins = 0, bclk = 0;
     u32 slot_width = word_width, slots = (channels == 1) ? 2 : channels;
     bool tx = streamType == AUDIO_RENDER_STREAM;
     struct fsl_hwParams_register val;
     int32_t trce_mask = 0, ret = 0;
     unsigned int dl_mask, i;
 
-    ret = SaiGetHwParams(sai, &channels, &rate, &word_width);
+    ret = SaiGetHwParams(pd, streamType, &channels, &rate, &word_width);
     if (ret != HDF_SUCCESS) {
         ADM_LOG_ERR("SaiGetHwParams fail ret=%d", ret);
         return ret;
@@ -920,7 +921,7 @@ int32_t SaiSetHwParams(const struct PlatformData *pd, const enum AudioStreamType
     val.cr3 = dl_mask & trce_mask;
     val.mr = ~0UL - ((1 << min(channels, slots)) - 1);
     
-    SaiSetHwParamsRegister(sai, &val, dl_mask);
+    SaiSetHwParamsRegister(sai, tx, &val, dl_mask);
     return HDF_SUCCESS;
 }
 
@@ -1360,7 +1361,7 @@ int32_t SaiDriverInitIrq(struct PrivPlatformData *ppd, struct device_node *np)
     return ret;
 }
 
-int32_t SaiDriverInitDma(struct PrivPlatformData *ppd, struct device_node *np)
+int32_t SaiDriverInitDma(struct PrivPlatformData *ppd, struct device_node *np, struct resource *res)
 {
     int ret = 0;
     struct fsl_sai *sai = &ppd->sai;
@@ -1431,7 +1432,7 @@ int32_t SaiDriverInit(struct PlatformData *pd)
         ADM_LOG_ERR("SaiDriverInitIrq fail ret=%d", ret);
         return ret;
     }
-    ret = SaiDriverInitDma(ppd, np);
+    ret = SaiDriverInitDma(ppd, np, res);
     if (ret != HDF_SUCCESS) {
         ADM_LOG_ERR("SaiDriverInitDma fail ret=%d", ret);
         return ret;
@@ -1558,7 +1559,7 @@ int32_t SaiTrigger(const struct DaiData *pd, int cmd, int isTx)
     dl_mask = SaiGetdlMask(sai, tx, pins);
 
     if (cmd == TRIGGER_START) {
-        SaiTriggerStart(sai, tx, channels, dl_mask);
+        SaiTriggerStart(sai, tx, channels, dl_mask, pins);
     } else {
         SaiTriggerStop(sai, tx);
     }

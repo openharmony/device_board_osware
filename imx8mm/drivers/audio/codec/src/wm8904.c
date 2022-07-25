@@ -441,7 +441,7 @@ typedef struct dcs_params {
     int pwr_reg;
 } stDcsParam;
 
-static int DapmPrePMU(struct stDcsParam dcsParam)
+static int DapmPrePMU(stDcsParam dcsParam)
 {
     int val = 0;
     int reg = dcsParam.reg;
@@ -513,9 +513,11 @@ static int DapmPrePMU(struct stDcsParam dcsParam)
     WM8904RegUpdateBits(g_wm8904_i2c_handle, reg,
         WM8904_HPL_ENA_OUTP | WM8904_HPR_ENA_OUTP,
         WM8904_HPL_ENA_OUTP | WM8904_HPR_ENA_OUTP, BYTE_NUM);
+    
+    return 0;
 }
 
-static int DapmPostPMD(struct stDcsParam dcsParam)
+static int DapmPostPMD(stDcsParam dcsParam)
 {
     int reg = dcsParam.reg;
     int dcs_mask = dcsParam.dcs_mask;
@@ -576,9 +578,9 @@ static int getRegValue(int reg, int *dcs_r_reg, int* dcs_l_reg, int* dcs_l, int*
 
 int out_pga(int reg, int event)
 {
-    int val = 0, dcs_mask = 0, dcs_l = 0, dcs_r = 0, dcs_l_reg = 0;
-    int timeout = 0, dcs_r_reg = 0, pwr_reg = 0;
-    struct stDcsParam dcsParam = {0};
+    int dcs_mask = 0, dcs_l = 0, dcs_r = 0;
+    int dcs_r_reg = 0, pwr_reg = 0, dcs_l_reg = 0;
+    stDcsParam dcsParam = {0};
 
     /* This code is shared between HP and LINEOUT; we do all our
      * power management in stereo pairs to avoid latency issues so
@@ -728,13 +730,13 @@ int WM8904GetAif1(int width, unsigned int *aif1)
         case BIT_WIDTH_16:
             break;
         case BIT_WIDTH_20:
-            aif1 |= 0x40;
+            *aif1 |= 0x40;
             break;
         case BIT_WIDTH_24:
-            aif1 |= 0x80;
+            *aif1 |= 0x80;
             break;
         case BIT_WIDTH_32:
-            aif1 |= 0xc0;
+            *aif1 |= 0xc0;
             break;
         default:
             return -EINVAL;
@@ -744,7 +746,7 @@ int WM8904GetAif1(int width, unsigned int *aif1)
 
 void WM8904HwParamsGetClkRate(unsigned int *dac_digital1, unsigned int *aif2, unsigned int *aif3, unsigned int *clock1)
 {
-    int ret = 0, i = 0, best = 0, best_val = 0, cur_val = 0;
+    int i = 0, best = 0, best_val = 0, cur_val = 0;
     /* Select nearest CLK_SYS_RATE */
     best_val = abs((gpwm8904->sysclk_rate / clk_sys_rates[0].ratio) - gpwm8904->fs);
     for (i = 1; i < ARRAY_SIZE(clk_sys_rates); i++) {
@@ -817,7 +819,7 @@ int Wm8904DaiHwParamsSet(const struct AudioCard *card, const struct AudioPcmHwPa
     gpwm8904->fs = fs;
     gpwm8904->bclk = fs * width * channel * slots;
 
-    ret = WM8904GetAif1(&aif1);
+    ret = WM8904GetAif1(width, &aif1);
     if (ret != 0) {
         return ret;
     }
@@ -847,6 +849,8 @@ int Wm8904DaiHwParamsSet(const struct AudioCard *card, const struct AudioPcmHwPa
 #define BITS_8  (8)
 static int TriggerRenderStart(void)
 {
+    unsigned int val = 0;
+
     WM8904_SET_BIAS_LEVEL(SND_SOC_BIAS_STANDBY);
     msleep(SLEEP_TIME_10);
     WM8904_SET_BIAS_LEVEL(SND_SOC_BIAS_PREPARE);
@@ -930,7 +934,6 @@ static int TriggerPause(void)
 int32_t Wm8904DaiTrigger(const struct AudioCard *audioCard, int cmd, const struct DaiDevice *dai)
 {
     WM8904_CODEC_LOG_ERR("cmd = %d ", cmd);
-    int32_t val = 0;
 
     switch (cmd) {
         case AUDIO_DRV_PCM_IOCTL_RENDER_START:
@@ -997,7 +1000,7 @@ static int WM8904_Set_Sysclk(int clk_id, unsigned int freq)
     return 0;
 }
 
-static int Wm8904ChkMasterFormatMask(unsigned int fmt, unsigned int *aif1, unsigned int *aif2)
+static int Wm8904ChkMasterFormatMask(unsigned int fmt, unsigned int *aif1, unsigned int *aif3)
 {
     switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
         case SND_SOC_DAIFMT_CBS_CFS:
@@ -1035,6 +1038,8 @@ static int Wm8904ChkMasterFormatMask(unsigned int fmt, unsigned int *aif1, unsig
         default:
             return -EINVAL;
     }
+
+    return 0;
 }
 
 static int WM8904_Set_Fmt(unsigned int fmt)
@@ -1042,7 +1047,7 @@ static int WM8904_Set_Fmt(unsigned int fmt)
     unsigned int aif1 = 0;
     unsigned int aif3 = 0;
 
-    Wm8904ChkMasterFormatMask(fmt, &aif1, &aif2);
+    Wm8904ChkMasterFormatMask(fmt, &aif1, &aif3);
 
     switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
         case SND_SOC_DAIFMT_DSP_A:
@@ -1254,6 +1259,7 @@ int WM8904_SET_BIAS_LEVEL(enum snd_soc_bias_level level)
 static int Wm8904RegConfig(void)
 {
     int ret = 0;
+    unsigned int val = 0;
 
     ret = WM8904RegRead(g_wm8904_i2c_handle, WM8904_SW_RESET_AND_ID, &val, BYTE_NUM);
     if (ret < 0) {
@@ -1343,7 +1349,6 @@ static int Wm8904UpdateReg(void)
 static int32_t Wm8904DriverInit(struct HdfDeviceObject *device)
 {
     struct i2c_client **data;
-    unsigned int val = 0;
     int ret = 0, i = 0;
     data = (struct i2c_client **)kzalloc(sizeof(struct i2c_client *), GFP_KERNEL);
 
