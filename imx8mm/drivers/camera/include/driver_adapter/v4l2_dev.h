@@ -34,6 +34,7 @@
 #else
 #include "v4l2_temp.h"
 #endif
+#include <v4l2_uvc.h>
 #include "v4l2_buffer.h"
 #include "v4l2_fileformat.h"
 #include "v4l2_stream.h"

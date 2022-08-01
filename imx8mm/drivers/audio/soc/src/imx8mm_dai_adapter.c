@@ -214,6 +214,27 @@ int32_t DaiHwParams(const struct AudioCard *card, const struct AudioPcmHwParams 
 
     return HDF_SUCCESS;
 }
+
+static int DaiTriggerDMAInit(struct PlatformData *pData)
+{
+    int32_t ret = 0;
+    
+    if (pData == NULL) {
+        return HDF_FAILURE;
+    }
+    
+    if (pData->renderBufInfo.virtAddr == NULL) {
+        ret = DMAInitTxBuff(pData);
+        if (ret != HDF_SUCCESS) {
+            AUDIO_DRIVER_LOG_ERR("DMAAoInit: fail");
+            return HDF_FAILURE;
+        }
+    }
+
+    return ret;
+}
+
+
 extern int32_t g_dmaRequestChannel;
 int32_t DaiTrigger(const struct AudioCard *card, int cmd, const struct DaiDevice *device)
 {
@@ -230,13 +251,7 @@ int32_t DaiTrigger(const struct AudioCard *card, int cmd, const struct DaiDevice
             if (g_dmaRequestChannel == 0) {
                 Imx8mmDmaRequestChannel(pData, data->pcmInfo.streamType);
 
-                if (pData->renderBufInfo.virtAddr == NULL) {
-                    ret = DMAInitTxBuff(pData);
-                    if (ret != HDF_SUCCESS) {
-                    AUDIO_DRIVER_LOG_ERR("DMAAoInit: fail");
-                    return HDF_FAILURE;
-                    }
-                }
+                DaiTriggerDMAInit(pData);
 
                 ret = DMAEnableTx(pData);
                 if (ret != HDF_SUCCESS) {
@@ -269,7 +284,6 @@ int32_t DaiTrigger(const struct AudioCard *card, int cmd, const struct DaiDevice
             }
             break;
         default:
-            AUDIO_DRIVER_LOG_ERR("cmd is error");
             break;
     }
     return HDF_SUCCESS;
@@ -318,30 +332,26 @@ static int32_t DaiFindDeviceFromBus(struct device *dev, void *para)
     return DAI_FIND_SUCCESS;
 }
 
+#define MCLK_BITS (4)
+#define MCLK_BITS_OFFSET  (20)
 static int32_t DaiInit(struct DaiHost * daiHost, struct HdfDeviceObject *device)
 {
-    int32_t ret;
+    int ret = 0;
     struct PrivDaiData *pdd;
-    struct device_node *codec_np = NULL;
-    struct device_node *gpr_np;
+    struct device_node *codec_np = NULL, *gpr_np;
     struct i2c_client *codec_dev;
 
-    AUDIO_DRIVER_LOG_ERR("entry\n");
-
     if (device->property == NULL || daiHost == NULL) {
-        AUDIO_DRIVER_LOG_ERR("invalid param");
         return HDF_FAILURE;
     }
 
     pdd = (struct PrivDaiData *)OsalMemCalloc(sizeof(struct PrivDaiData));
     if (pdd == NULL) {
-        AUDIO_DRIVER_LOG_ERR("OsalMemCalloc configInfo error");
         return HDF_ERR_MALLOC_FAIL;
     }
 
     ret = DaiGetInfoFromHcs(pdd, device->property);
     if (ret != HDF_SUCCESS) {
-        AUDIO_DRIVER_LOG_ERR("error");
         return HDF_FAILURE;
     }
 
@@ -349,42 +359,28 @@ static int32_t DaiInit(struct DaiHost * daiHost, struct HdfDeviceObject *device)
 
     ret = bus_for_each_dev(&platform_bus_type, NULL, (void*)pdd, DaiFindDeviceFromBus);
     if (ret != DAI_FIND_SUCCESS) {
-        AUDIO_DRIVER_LOG_ERR("dai find fail, ret is %d", ret);
         return HDF_FAILURE;
     }
 
-    AUDIO_DRIVER_LOG_ERR("dai name = %s", pdd->dai_dev_name);
-
     ret = of_clk_set_defaults(pdd->pdev->dev.of_node, false);
     if (ret < 0) {
-        AUDIO_DRIVER_LOG_ERR("set clk default failed");
         return HDF_FAILURE;
     }
 
     codec_np = of_parse_phandle(pdd->pdev->dev.of_node, "audio-codec", 0);
     if (!codec_np) {
-        AUDIO_DRIVER_LOG_ERR("phandle missing or invalid\n");
         return HDF_FAILURE;
     }
 
     codec_dev = of_find_i2c_device_by_node(codec_np);
     if (!codec_dev) {
-        AUDIO_DRIVER_LOG_ERR("codec_dev invalid\n");
-        if (codec_np) {
-            of_node_put(codec_np);
-        }
-
+        of_node_put(codec_np);
         return HDF_FAILURE;
     }
 
     pdd->mclk = devm_clk_get(&codec_dev->dev, "mclk");
-
     if (IS_ERR(pdd->mclk)) {
-        AUDIO_DRIVER_LOG_ERR("mclk get failed\n");
-        if (codec_np) {
-            of_node_put(codec_np);
-        }
-
+        of_node_put(codec_np);
         return HDF_FAILURE;
     }
 
@@ -392,8 +388,6 @@ static int32_t DaiInit(struct DaiHost * daiHost, struct HdfDeviceObject *device)
     if (gpr_np) {
         pdd->gpr = syscon_node_to_regmap(gpr_np);
         if (IS_ERR(pdd->gpr)) {
-            ret = PTR_ERR(pdd->gpr);
-            AUDIO_DRIVER_LOG_ERR("failed to get gpr regmap\n");
             if (codec_np) {
                 of_node_put(codec_np);
             }
@@ -402,7 +396,7 @@ static int32_t DaiInit(struct DaiHost * daiHost, struct HdfDeviceObject *device)
         }
 
         /* set SAI2_MCLK_DIR to enable codec MCLK for imx7d */
-        regmap_update_bits(pdd->gpr, 4, 1 << 20, 1 << 20);
+        regmap_update_bits(pdd->gpr, MCLK_BITS, 1 << MCLK_BITS_OFFSET, 1 << MCLK_BITS_OFFSET);
     }
 
     return HDF_SUCCESS;

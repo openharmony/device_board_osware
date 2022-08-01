@@ -24,9 +24,13 @@ namespace OHOS::Camera {
 HosV4L2Buffers::HosV4L2Buffers(enum v4l2_memory memType, enum v4l2_buf_type bufferType)
     : memoryType_(memType), bufferType_(bufferType)
 {
+    additional_info_ = Imx8mmImageAdditionalInfo::GetInstance();
 }
 
-HosV4L2Buffers::~HosV4L2Buffers() {}
+HosV4L2Buffers::~HosV4L2Buffers()
+{
+    delete(additional_info_);
+}
 
 RetCode HosV4L2Buffers::V4L2ReqBuffers(int fd, int unsigned buffCont)
 {
@@ -73,7 +77,7 @@ RetCode HosV4L2Buffers::V4L2QueueBuffer(int fd, const std::shared_ptr<FrameSpec>
 
     uint32_t index = (uint32_t)frameSpec->buffer_->GetIndex();
     adapterBufferList[index].userBufPtr = frameSpec->buffer_->GetVirAddress();
-    adapterBufferList[index].length = frameSpec->buffer_->GetLength();
+    adapterBufferList[index].length = additional_info_->GetLength();
 
     buf.index = (uint32_t)frameSpec->buffer_->GetIndex();
     buf.type = bufferType_;
@@ -92,8 +96,8 @@ RetCode HosV4L2Buffers::V4L2QueueBuffer(int fd, const std::shared_ptr<FrameSpec>
         switch (memoryType_) {
             case V4L2_MEMORY_MMAP:
                 {
-                    adapterBufferList[index].start = mmap(NULL, frameSpec->buffer_->GetLength(),
-                        PROT_READ | PROT_WRITE, MAP_SHARED, fd, frameSpec->buffer_->GetOffset());
+                    adapterBufferList[index].start = mmap(NULL, additional_info_->GetLength(),
+                        PROT_READ | PROT_WRITE, MAP_SHARED, fd, additional_info_->GetOffset());
                     if (MAP_FAILED == adapterBufferList[index].start) {
                         CAMERA_LOGE("v4l2 mmap failed\n");
                         return RC_ERROR;
@@ -241,8 +245,8 @@ RetCode HosV4L2Buffers::V4L2AllocBuffer(int fd, const std::shared_ptr<FrameSpec>
                 CAMERA_LOGE("ERROR:user buff < V4L2 buf.length\n");
                 return RC_ERROR;
             }
-            frameSpec->buffer_->SetLength(buf.length);
-            frameSpec->buffer_->SetOffset(buf.m.offset);
+            additional_info_->SetLength(buf.length);
+            additional_info_->SetOffset(buf.m.offset);
 
             break;
         case V4L2_MEMORY_OVERLAY:

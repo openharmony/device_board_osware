@@ -49,6 +49,7 @@ config("v4l2_maintest") {
 ohos_executable("v4l2_main") {
   install_enable = true
   sources = [
+    "$board_camera_path/src/driver_adapter/src/imx8mm_image_buffer.cpp",
     "$board_camera_path/src/driver_adapter/src/v4l2_buffer.cpp",
     "$board_camera_path/src/driver_adapter/src/v4l2_dev.cpp",
     "$board_camera_path/src/driver_adapter/src/v4l2_fileformat.cpp",
@@ -62,7 +63,6 @@ ohos_executable("v4l2_main") {
     "$board_camera_path/src/driver_adapter/main_test",
     "$camera_path/include",
     "$board_camera_path/include/driver_adapter",
-    "//drivers/peripheral/camera/hal/adapter/platform/v4l2/src/driver_adapter/include",
   ]
 
   deps = [ "$hdf_uhdf_path/utils:libhdf_utils" ]

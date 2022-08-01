@@ -113,7 +113,7 @@ ohos_shared_library("camera_pipeline_core") {
     "../device_manager/include",
     "$camera_path/adapter/platform/v4l2/src/pipeline_core/nodes/v4l2_source_node",
     "$camera_path/adapter/platform/v4l2/src/pipeline_core/nodes/uvc_node",
-    "//drivers/peripheral/camera/hal/adapter/platform/v4l2/src/driver_adapter/include/",
+    "$board_camera_path/include/driver_adapter",
     "//foundation/communication/ipc/ipc/native/src/core/include",
     "//utils/native/base/include",
     "//drivers/peripheral/camera/interfaces/metadata/include",
