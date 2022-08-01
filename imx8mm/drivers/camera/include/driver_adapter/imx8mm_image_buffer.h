@@ -16,7 +16,6 @@
 #ifndef HOS_CAMERA_IMX8MM_IMAGE_INFO_H
 #define HOS_CAMERA_IMX8MM_IMAGE_INFO_H
 
-#include <cerrno>
 #include <cstdio>
 #include <string>
 
@@ -27,7 +26,7 @@ public:
 
     virtual ~Imx8mmImageAdditionalInfo();
 
-    static Imx8mmImageAdditionalInfo * GetInstance();
+    static Imx8mmImageAdditionalInfo *GetInstance();
 
     virtual uint32_t GetOffset() const;
     virtual uint32_t GetLength() const;

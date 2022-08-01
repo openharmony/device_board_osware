@@ -34,12 +34,12 @@
 #else
 #include "v4l2_temp.h"
 #endif
+#include <v4l2_uvc.h>
 #include "v4l2_buffer.h"
 #include "v4l2_fileformat.h"
 #include "v4l2_stream.h"
 #include "v4l2_control.h"
 #include "v4l2_common.h"
-#include <v4l2_uvc.h>
 
 namespace OHOS::Camera {
 class HosV4L2Dev {

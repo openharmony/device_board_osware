@@ -19,10 +19,10 @@
 #include <vector>
 #include <cstring>
 #include <fcntl.h>
-#include <linux/videodev2.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <linux/videodev2.h>
 #include "v4l2_common.h"
 #if defined(V4L2_UTEST) || defined (V4L2_MAIN_TEST)
 #include "v4l2_temp.h"

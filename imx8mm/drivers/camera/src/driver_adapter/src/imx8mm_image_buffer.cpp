@@ -27,10 +27,10 @@ Imx8mmImageAdditionalInfo::~Imx8mmImageAdditionalInfo()
     Free();
 }
 
-Imx8mmImageAdditionalInfo * Imx8mmImageAdditionalInfo::GetInstance()
+Imx8mmImageAdditionalInfo *Imx8mmImageAdditionalInfo::GetInstance()
 {
     static Imx8mmImageAdditionalInfo addiInfo;
-    return &addiInfo; 
+    return &addiInfo;
 }
 
 uint32_t Imx8mmImageAdditionalInfo::GetOffset() const
@@ -62,6 +62,5 @@ void Imx8mmImageAdditionalInfo::Free()
 
     return;
 }
-
 } // namespace OHOS::Camera
 

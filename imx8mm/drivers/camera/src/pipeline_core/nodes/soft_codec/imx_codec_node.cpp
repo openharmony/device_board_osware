@@ -75,8 +75,8 @@ RetCode IMXCodecNode::Flush(const int32_t streamId)
 
 void yuvtorgb(int y, int u, int v, int sign, unsigned char *pixel32)
 {
-    int r, g, b, a;
-    static long long ruv, guv, buv;
+    int r = 0, g = 0, b = 0, a = 0;
+    static unsigned long long ruv = 0, guv = 0, buv = 0;
 
     if (sign) {
         ruv = val_num_1159 * (v - val_num_128);

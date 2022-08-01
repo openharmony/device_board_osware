@@ -17,13 +17,13 @@
 
 #include <thread>
 #include <fcntl.h>
-#include <linux/netlink.h>
-#include <linux/videodev2.h>
 #include <sys/ioctl.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <sys/eventfd.h>
+#include <linux/netlink.h>
+#include <linux/videodev2.h>
 #include "v4l2_common.h"
 #if defined(V4L2_UTEST) || defined (V4L2_MAIN_TEST)
 #include "v4l2_temp.h"

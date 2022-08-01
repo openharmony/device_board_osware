@@ -16,9 +16,9 @@
 #ifndef HOS_CAMERA_V4L2_CONTROL_H
 #define HOS_CAMERA_V4L2_CONTROL_H
 
-#include <linux/videodev2.h>
 #include <errno.h>
 #include <sys/ioctl.h>
+#include <linux/videodev2.h>
 #include "v4l2_common.h"
 #if defined(V4L2_UTEST) || defined (V4L2_MAIN_TEST)
 #include "v4l2_temp.h"

@@ -822,7 +822,7 @@ u32 SaiGetdlMask(struct fsl_sai *sai, bool tx, u32 pins)
     return dl_cfg[dl_cfg_idx].mask[tx];
 }
 
-u32 SaiSetHwParamsRegister(struct fsl_sai *sai, bool tx, 
+u32 SaiSetHwParamsRegister(struct fsl_sai *sai, bool tx,
     struct fsl_hwParams_register *val, unsigned int dl_mask)
 {
     unsigned char offset = sai->reg_offset;
