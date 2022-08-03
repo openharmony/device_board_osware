@@ -16,7 +16,7 @@
 
 import("//build/config/clang/clang.gni")
 import("//build/ohos.gni")
-import("//device/board/osware/imx8mm/kernel/kernel.gni")
+import("//build/ohos/kernel/kernel.gni")
 
 # it needs adaptation for more device target
 target_cpu = "arm64"
