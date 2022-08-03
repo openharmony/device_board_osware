@@ -77,8 +77,8 @@ ohos_shared_library("camera_v4l2_adapter") {
     deps = [ "$hdf_uhdf_path/utils:libhdf_utils" ]
 
     external_deps = [
+      "c_utils:utils",
       "hiviewdfx_hilog_native:libhilog",
-      "utils_base:utils",
     ]
   } else {
     external_deps = [ "hilog:libhilog" ]
