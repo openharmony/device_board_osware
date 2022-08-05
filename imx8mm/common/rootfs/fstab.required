@@ -1,4 +1,4 @@
 # fstab file.
 #<src>                                                                  <mnt_point>     <type>    <mnt_flags and options>                              <fs_mgr_flags>
-/dev/block/platform/soc@0/soc@0:bus@30800000/30b50000.mmc/mmcblk1p2     /vendor          ext4     rw,barrier=1  wait,required
-/dev/block/platform/soc@0/soc@0:bus@30800000/30b50000.mmc/mmcblk1p3     /data            ext4     rw,barrier=1  wait,required
+/dev/block/platform/soc@0/soc@0:bus@30800000/30b60000.mmc/mmcblk2p3     /vendor          ext4     rw,barrier=1  wait,required
+/dev/block/platform/soc@0/soc@0:bus@30800000/30b60000.mmc/mmcblk2p4     /data            ext4     rw,barrier=1  wait,required
