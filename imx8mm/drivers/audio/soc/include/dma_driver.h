@@ -30,5 +30,6 @@ int32_t DMAPauseRx(struct PlatformData *platformData);
 int32_t DmaInit(struct PlatformData *platformData);
 int32_t DMADeinitTxBuff(struct PlatformData *platformData);
 int32_t DMADeinitRxBuff(struct PlatformData *platformData);
-
+int32_t DMAConfigTxBuff(struct PlatformData *platformData);
+int32_t DMAConfigRxBuff(struct PlatformData *platformData);
 #endif

@@ -51,18 +51,12 @@ int32_t Imx8mmDmaBufAlloc(struct PlatformData *data, const enum AudioStreamType 
             return HDF_FAILURE;
         }
     } else if (AUDIO_CAPTURE_STREAM == streamType) {
-    }
-    else if (AUDIO_CAPTURE_STREAM == streamType) {
         ret = DMAInitRxBuff(data);
         if (ret != HDF_SUCCESS) {
             AUDIO_DRIVER_LOG_ERR("Imx8mmDmaBufAlloc: fail");
             return HDF_FAILURE;
         }
     } else {
-        AUDIO_DRIVER_LOG_ERR("stream Type is invalude.");
-        return HDF_FAILURE;
-    }
-    else {
         AUDIO_DRIVER_LOG_ERR("stream Type is invalude.");
         return HDF_FAILURE;
     }
