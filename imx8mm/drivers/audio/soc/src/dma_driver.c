@@ -93,7 +93,11 @@ int32_t DMAInitTxBuff(struct PlatformData *platformData)
         return HDF_SUCCESS;
     }
 
+<<<<<<< HEAD
     buffSize = platformData->renderBufInfo.cirBufMax;
+=======
+    buffSize = platformData->renderBufInfo.cirBufMax; //platformData->renderBufInfo.periodCount * platformData->renderBufInfo.periodSize
+>>>>>>> a2d1acd2710ff3058c23ced66468be077d40907a
 
     if (buffSize < MIN_AIAO_BUFF_SIZE || buffSize > MAX_AIAO_BUFF_SIZE) {
         AUDIO_DRIVER_LOG_ERR("buffsize error size:%d", buffSize);
