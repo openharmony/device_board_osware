@@ -1293,7 +1293,7 @@ int32_t SaiDriverInitClk(struct PrivPlatformData *ppd, void __iomem *base)
     if (IS_ERR(sai->pll11k_clk)) {
         sai->pll11k_clk = NULL;
     }
-    return ret;
+    return HDF_SUCCESS;
 }
 
 int32_t SaiDriverInitDataline(struct PrivPlatformData *ppd)
@@ -1423,7 +1423,7 @@ int32_t SaiDriverInit(struct PlatformData *pd)
     sai->dataline = 0xFF;
     sai->fifo_depth = NUM_128;
     ret = SaiDriverInitDataline(ppd);
-    if (ret != HDF_SUCCESS) {
+    if (ret < 0) {
         ADM_LOG_ERR("SaiDriverInitDataline fail ret=%d", ret);
         return ret;
     }
