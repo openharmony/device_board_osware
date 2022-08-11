@@ -291,6 +291,47 @@ static const struct AudioKcontrol g_audioControls[] = {
         .Set = AudioCodecSetCtrlOps,
         .privateValue = (unsigned long)&g_audioRegParams,
     },
+    {
+        .iface = 2,
+        .name = "Speaker1 Switch",
+        .Info = AudioInfoCtrlOps,
+        .Get = AudioCodecGetCtrlOps,
+        .Set = AudioCodecSetCtrlOps,
+        .privateValue = (unsigned long)&g_audioRegParams,
+    },
+    {
+        .iface = 2,
+        .name = "Headphone1 Switch",
+        .Info = AudioInfoCtrlOps,
+        .Get = AudioCodecGetCtrlOps,
+        .Set = AudioCodecSetCtrlOps,
+        .privateValue = (unsigned long)&g_audioRegParams,
+    },
+    {
+        .iface = 2,
+        .name = "Headphone2 Switch",
+        .Info = AudioInfoCtrlOps,
+        .Get = AudioCodecGetCtrlOps,
+        .Set = AudioCodecSetCtrlOps,
+        .privateValue = (unsigned long)&g_audioRegParams,
+    },
+    {
+        .iface = 2,
+        .name = "DACL Left Speaker Mixer",
+        .Info = AudioInfoCtrlOps,
+        .Get = AudioCodecGetCtrlOps,
+        .Set = AudioCodecSetCtrlOps,
+        .privateValue = (unsigned long)&g_audioRegParams,
+    },
+    {
+        .iface = 2,
+        .name = "DACR Left Speaker Mixer",
+        .Info = AudioInfoCtrlOps,
+        .Get = AudioCodecGetCtrlOps,
+        .Set = AudioCodecSetCtrlOps,
+        .privateValue = (unsigned long)&g_audioRegParams,
+    },
+
 };
 
 int32_t Wm8904DevInit(struct AudioCard *audioCard, const struct CodecDevice *device)
