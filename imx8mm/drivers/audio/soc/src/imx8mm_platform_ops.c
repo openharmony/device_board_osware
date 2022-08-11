@@ -37,8 +37,31 @@ int32_t g_dmaRequestChannel = 0;
 
 int32_t Imx8mmDmaBufAlloc(struct PlatformData *data, const enum AudioStreamType streamType)
 {
-    (void)data;
-    (void)streamType;
+    int32_t ret = HDF_SUCCESS;
+
+    if (data == NULL) {
+        AUDIO_DRIVER_LOG_ERR("data is null");
+        return HDF_FAILURE;
+    }
+
+    if (AUDIO_RENDER_STREAM == streamType) {
+        ret = DMAInitTxBuff(data);
+        if (ret != HDF_SUCCESS) {
+            AUDIO_DRIVER_LOG_ERR("Imx8mmDmaBufAlloc: fail");
+            return HDF_FAILURE;
+        }
+    }
+    else if (AUDIO_CAPTURE_STREAM == streamType) {
+        ret = DMAInitRxBuff(data);
+        if (ret != HDF_SUCCESS) {
+            AUDIO_DRIVER_LOG_ERR("Imx8mmDmaBufAlloc: fail");
+            return HDF_FAILURE;
+        }
+    }
+    else {
+        AUDIO_DRIVER_LOG_ERR("stream Type is invalude.");
+        return HDF_FAILURE;        
+    }
 
     return HDF_SUCCESS;
 }
@@ -136,16 +159,16 @@ int32_t Imx8mmDmaConfigChannel(const struct PlatformData *data, const enum Audio
     platformData = (struct PlatformData *)data;
 
     if (streamType == AUDIO_CAPTURE_STREAM) {
-        if (platformData->captureBufInfo.virtAddr == NULL) {
-            ret = DMAInitRxBuff(platformData);
+        if (platformData->captureBufInfo.virtAddr != NULL) {
+            ret = DMAConfigRxBuff(platformData);
             if (ret != HDF_SUCCESS) {
                 AUDIO_DRIVER_LOG_ERR("DMAAiInit: fail");
                 return HDF_FAILURE;
             }
         }
     } else if (streamType == AUDIO_RENDER_STREAM) {
-        if (data->renderBufInfo.virtAddr == NULL) {
-            ret = DMAInitTxBuff((struct PlatformData *)data);
+        if (data->renderBufInfo.virtAddr != NULL) {
+            ret = DMAConfigTxBuff((struct PlatformData *)data);
             if (ret != HDF_SUCCESS) {
                 AUDIO_DRIVER_LOG_ERR("DMAAoInit: fail");
                 return HDF_FAILURE;
