@@ -331,7 +331,10 @@ int32_t DMAConfigRxBuff(struct PlatformData *platformData)
     struct device *dev = NULL;
     struct PrivPlatformData *ppd = NULL;
     struct dma_slave_config slave_config = {};
-
+	
+    ppd = (struct PrivPlatformData *)platformData->dmaPrv;
+    dev = &ppd->pdev->dev;
+	
     ppd->dma_chan_rx = dma_request_slave_channel(dev, "rx");
     if (!ppd->dma_chan_rx) {
         return HDF_FAILURE;
