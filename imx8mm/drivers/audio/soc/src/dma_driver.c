@@ -76,13 +76,11 @@ int32_t DMADeinitTxBuff(struct PlatformData *platformData)
 int32_t DMAInitTxBuff(struct PlatformData *platformData)
 {
     uint64_t buffSize;
-    int32_t ret;
+    
     struct device *dev = NULL;
     struct PrivPlatformData *ppd = NULL;
-    struct dma_slave_config slave_config = {};
     gfp_t gfp_flags;
 
-    AUDIO_DRIVER_LOG_ERR("%s", __func__);
     if (platformData == NULL) {
         return HDF_FAILURE;
     }
@@ -95,8 +93,10 @@ int32_t DMAInitTxBuff(struct PlatformData *platformData)
         return HDF_SUCCESS;
     }
 
-    buffSize = platformData->renderBufInfo.periodCount * platformData->renderBufInfo.periodSize;
+    buffSize = platformData->renderBufInfo.cirBufMax;
+
     if (buffSize < MIN_AIAO_BUFF_SIZE || buffSize > MAX_AIAO_BUFF_SIZE) {
+        AUDIO_DRIVER_LOG_ERR("buffsize error size:%d", buffSize);
         return HDF_FAILURE;
     }
 
@@ -104,13 +104,31 @@ int32_t DMAInitTxBuff(struct PlatformData *platformData)
     platformData->renderBufInfo.virtAddr = dma_alloc_coherent(dev, buffSize,
         (dma_addr_t *)&platformData->renderBufInfo.phyAddr, gfp_flags);
     if (platformData->renderBufInfo.virtAddr == NULL) {
+        AUDIO_DRIVER_LOG_ERR("dma alloc failed");
         return HDF_FAILURE;
     }
 
     platformData->renderBufInfo.cirBufSize = buffSize;
+    return HDF_SUCCESS;
+}
+
+int32_t DMAConfigTxBuff(struct PlatformData *platformData)
+{
+    int32_t ret;
+    struct device *dev = NULL;
+    struct PrivPlatformData *ppd = NULL;
+    struct dma_slave_config slave_config = {};
+
+    if (platformData == NULL) {
+        return HDF_FAILURE;
+    }
+
+    ppd = (struct PrivPlatformData *)platformData->dmaPrv;
+    dev = &ppd->pdev->dev;
 
     ppd->dma_chan_tx = dma_request_slave_channel(dev, "tx");
     if (!ppd->dma_chan_tx) {
+        AUDIO_DRIVER_LOG_ERR("slave channel failed");
         return HDF_FAILURE;
     }
 
@@ -121,6 +139,7 @@ int32_t DMAInitTxBuff(struct PlatformData *platformData)
     } else if (platformData->renderPcmInfo.bitWidth == BIT_WIDTH32) {
         slave_config.dst_addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
     } else {
+        AUDIO_DRIVER_LOG_ERR("slave config biwidth is error");
         return HDF_FAILURE;
     }
 
@@ -128,6 +147,7 @@ int32_t DMAInitTxBuff(struct PlatformData *platformData)
 
     ret = dmaengine_slave_config(ppd->dma_chan_tx, &slave_config);
     if (ret) {
+        AUDIO_DRIVER_LOG_ERR("slave config failed");
         return HDF_FAILURE;
     }
 
@@ -273,10 +293,8 @@ int32_t DMADeinitRxBuff(struct PlatformData *platformData)
 int32_t DMAInitRxBuff(struct PlatformData *platformData)
 {
     uint64_t buffSize;
-    int32_t ret;
     struct device *dev = NULL;
     struct PrivPlatformData *ppd = NULL;
-    struct dma_slave_config slave_config = {};
     gfp_t gfp_flags;
 
     AUDIO_DRIVER_LOG_ERR("%s", __func__);
@@ -291,7 +309,7 @@ int32_t DMAInitRxBuff(struct PlatformData *platformData)
         return HDF_SUCCESS;
     }
 
-    buffSize = platformData->captureBufInfo.periodCount * platformData->captureBufInfo.periodSize;
+    buffSize = platformData->captureBufInfo.cirBufMax;
     if (buffSize < MIN_AIAO_BUFF_SIZE || buffSize > MAX_AIAO_BUFF_SIZE) {
         return HDF_FAILURE;
     }
@@ -304,6 +322,19 @@ int32_t DMAInitRxBuff(struct PlatformData *platformData)
     }
     platformData->captureBufInfo.cirBufSize = buffSize;
 
+    return HDF_SUCCESS;
+}
+
+int32_t DMAConfigRxBuff(struct PlatformData *platformData)
+{
+    int32_t ret;
+    struct device *dev = NULL;
+    struct PrivPlatformData *ppd = NULL;
+    struct dma_slave_config slave_config = {};
+	
+    ppd = (struct PrivPlatformData *)platformData->dmaPrv;
+    dev = &ppd->pdev->dev;
+	
     ppd->dma_chan_rx = dma_request_slave_channel(dev, "rx");
     if (!ppd->dma_chan_rx) {
         return HDF_FAILURE;

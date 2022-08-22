@@ -229,6 +229,11 @@ static int DaiTriggerDMAInit(struct PlatformData *pData)
             AUDIO_DRIVER_LOG_ERR("DMAAoInit: fail");
             return HDF_FAILURE;
         }
+        ret = DMAConfigTxBuff(pData);
+        if (ret != HDF_SUCCESS) {
+            AUDIO_DRIVER_LOG_ERR("DMAAoInit: fail");
+            return HDF_FAILURE;
+        }
     }
 
     return ret;
