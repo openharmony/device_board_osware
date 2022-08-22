@@ -81,6 +81,8 @@ public:
 
     RetCode Flush(const std::string& cameraID);
 
+    void SetMemoryType(uint8_t &memType);
+
     static RetCode Init(std::vector<std::string>& cameraIDs);
 
     static std::map<std::string, std::string> deviceMatch;
