@@ -79,11 +79,6 @@ ohos_prebuilt_etc("fstab.required") {
 #****************************************************
 #loader
 #****************************************************
-ohos_copy("flash.bin") {
-  sources = [ "//device/board/osware/imx8mm/loader/flash.bin" ]
-  outputs = [ "$root_build_dir/packages/phone/images/flash.bin" ]
-}
-
 ohos_prebuilt_etc("imx_sdma_ko") {
   source = "//device/board/osware/imx8mm/common/firmware/imx-sdma.ko"
   module_install_dir = "./etc/imx_sdma"
@@ -147,7 +142,6 @@ group("init_configs") {
     ":firmware_bin",
     ":firmware_hcd",
     ":firmware_p2p_bin",
-    ":flash.bin",
     ":fstab.imx8mm",
     ":fstab.required",
     ":imx_sdma_ko",

@@ -178,6 +178,12 @@ out/imx8mm/ohos-arm-release/packages/phone/images/ 目录下。
 
 3） 编译源码完成，请进行镜像烧录。
 
+#### Bootloader的代码
+
+在如下路径下载bootloader代码：
+
+    https://gitee.com/osware_admin_admin/8m_dk_uboot8
+
 ### 烧录
 
 烧写工具下载及使用。
