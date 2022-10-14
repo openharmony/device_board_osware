@@ -33,7 +33,7 @@ config("bt_warnings") {
 ohos_prebuilt_etc("BCM43438A1.hcd") {
   source =
       "//device/board/osware/imx8mm/drivers/bluetooth/firmware/BCM43438A1.hcd"
-  install_images = [ vendor_base_dir ]
+  install_images = [ chipset_base_dir ]
   relative_install_dir = "firmware"
   part_name = "osware_products"
   install_enable = true
