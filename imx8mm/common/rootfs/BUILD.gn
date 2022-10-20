@@ -51,21 +51,21 @@ ohos_prebuilt_etc("init.imx8mm.usb.cfg") {
 ohos_prebuilt_etc("init.imx8mm.rc") {
   source = "init.imx8mm.rc"
   module_install_dir = "etc/init"
-  install_images = [ "vendor" ]
+  install_images = [ chipset_base_dir ]
   part_name = "osware_products"
 }
 
 ohos_prebuilt_etc("init.imx8mm.usb.rc") {
   source = "init.imx8mm.usb.rc"
   module_install_dir = "etc/init"
-  install_images = [ "vendor" ]
+  install_images = [ chipset_base_dir ]
   part_name = "osware_products"
 }
 
 ohos_prebuilt_etc("fstab.imx8mm") {
   source = "fstab.imx8mm"
   part_name = "osware_products"
-  install_images = [ vendor_base_dir ]
+  install_images = [ chipset_base_dir ]
   install_enable = true
 }
 
