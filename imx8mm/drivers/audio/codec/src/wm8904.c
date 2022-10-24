@@ -701,11 +701,11 @@ static struct {
 static int Frame_To_Bit_Width(enum AudioFormat format, int *bitWidth)
 {
     switch (format) {
-        case AUDIO_FORMAT_PCM_16_BIT:
+        case AUDIO_FORMAT_TYPE_PCM_16_BIT:
             *bitWidth = BIT_WIDTH_16;
             break;
-        case AUDIO_FORMAT_PCM_24_BIT:
-        case AUDIO_FORMAT_PCM_32_BIT:
+        case AUDIO_FORMAT_TYPE_PCM_24_BIT:
+        case AUDIO_FORMAT_TYPE_PCM_32_BIT:
             *bitWidth = BIT_WIDTH_32;
             break;
         default:
