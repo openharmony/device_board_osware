@@ -1,4 +1,4 @@
-# Copyright (C) 2021–2022 Beijing OSWare Technology Co., Ltd
+# Copyright (C) 2021–2023 Beijing OSWare Technology Co., Ltd
 # This file contains confidential and proprietary information of
 # OSWare Technology Co., Ltd
 #
@@ -75,13 +75,9 @@ ohos_shared_library("camera_device_manager") {
     "//commonlibrary/c_utils/base/include",
     "//drivers/hdf_core/framework/include/utils",
     "//drivers/hdf_core/adapter/uhdf2/osal/include",
-    "//drivers/peripheral/camera/interfaces/metadata/include",
   ]
 
-  deps = [
-    "$board_camera_path/src/driver_adapter:camera_v4l2_adapter",
-    "//drivers/peripheral/camera/interfaces/metadata:metadata",
-  ]
+  deps = [ "$board_camera_path/src/driver_adapter:camera_v4l2_adapter" ]
 
   if (is_standard_system) {
     external_deps = [
@@ -94,6 +90,7 @@ ohos_shared_library("camera_device_manager") {
       "hilog:libhilog",
     ]
   }
+  external_deps += [ "drivers_interface_camera:metadata" ]
 
   public_configs = [ ":device_manager_config" ]
   install_images = [ chipset_base_dir ]

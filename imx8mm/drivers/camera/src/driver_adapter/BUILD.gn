@@ -1,4 +1,4 @@
-# Copyright (C) 2021–2022 Beijing OSWare Technology Co., Ltd
+# Copyright (C) 2021–2023 Beijing OSWare Technology Co., Ltd
 # This file contains confidential and proprietary information of
 # OSWare Technology Co., Ltd
 #
@@ -69,7 +69,6 @@ ohos_shared_library("camera_v4l2_adapter") {
   include_dirs = [
     "$camera_path/include",
     "$board_camera_path/include/driver_adapter",
-    "//drivers/peripheral/camera/interfaces/metadata/include",
     "//drivers/peripheral/camera/hal/adapter/platform/v4l2/src/driver_adapter/include",
   ]
 
