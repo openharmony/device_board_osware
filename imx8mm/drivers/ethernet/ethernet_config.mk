@@ -32,6 +32,10 @@ HDF_FRAMEWORKS_INC := \
     -Idrivers/hdf/framework/support/platform/include \
     -Idrivers/hdf/framework/support/platform/include/platform \
     -Idrivers/hdf/framework/utils/include \
+    -Idrivers/hdf/inner_api/osal/shared \
+    -Idrivers/hdf/inner_api/host/shared \
+    -Idrivers/hdf/inner_api/utils \
+    -Idrivers/hdf/inner_api/core \
     -Idrivers/hdf/khdf/osal/include \
     -Idrivers/hdf/khdf/config/include \
     -Iinclude/hdf \
