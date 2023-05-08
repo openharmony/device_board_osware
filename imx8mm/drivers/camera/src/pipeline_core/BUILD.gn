@@ -16,7 +16,7 @@
 
 import("//build/ohos.gni")
 import("//drivers/hdf_core/adapter/uhdf2/uhdf.gni")
-import("//drivers/peripheral/camera/hal/camera.gni")
+import("//drivers/peripheral/camera/camera.gni")
 
 config("pipe_config") {
   visibility = [ ":*" ]
@@ -82,11 +82,11 @@ ohos_shared_library("camera_pipeline_core") {
     "$camera_path/../interfaces/include",
     "$camera_path/../interfaces/hdi_ipc",
     "$camera_path/include",
-    "$camera_path/hdi_impl",
-    "$camera_path/hdi_impl/camera_host/include",
-    "$camera_path/hdi_impl/camera_device/include",
-    "$camera_path/hdi_impl/stream_operator/include",
-    "$camera_path/hdi_impl/include",
+    "$camera_path/../v4l2",
+    "$camera_path/../v4l2/camera_host/include",
+    "$camera_path/../v4l2/camera_device/include",
+    "$camera_path/../v4l2/stream_operator/include",
+    "$camera_path/../v4l2/include",
     "$camera_path/device_manager",
     "$camera_path/device_manager/include",
     "$camera_path/pipeline_core",
