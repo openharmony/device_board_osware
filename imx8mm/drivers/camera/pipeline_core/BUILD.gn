@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import("//build/ohos.gni")
+import("//device/board/${product_company}/${device_name}/device.gni")
 import("//drivers/hdf_core/adapter/uhdf2/uhdf.gni")
 import("//drivers/peripheral/camera/camera.gni")
 
@@ -49,8 +50,8 @@ config("pipe_config") {
 
 ohos_shared_library("camera_pipeline_core") {
   sources = [
-    "$board_camera_path/src/pipeline_core/nodes/soft_codec/imx_codec_node.cpp",
-    "$board_camera_path/src/pipeline_core/nodes/v4l2_source_node/v4l2_source_node.cpp",
+    "$board_camera_path/pipeline_core/src/nodes/soft_codec/imx_codec_node.cpp",
+    "$board_camera_path/pipeline_core/src/nodes/v4l2_source_node/v4l2_source_node.cpp",
     "$camera_path/adapter/platform/v4l2/src/pipeline_core/nodes/uvc_node/uvc_node.cpp",
     "$camera_path/pipeline_core/host_stream/src/host_stream_impl.cpp",
     "$camera_path/pipeline_core/host_stream/src/host_stream_mgr_impl.cpp",
@@ -111,13 +112,13 @@ ohos_shared_library("camera_pipeline_core") {
     "$camera_path/interfaces/hdi",
     "$camera_path/utils/event",
     "$camera_path/adapter/platform/v4l2/src/device_manager/include",
-    "../device_manager/include",
+    "$board_camera_path/device_manager/include",
     "$camera_path/adapter/platform/v4l2/src/pipeline_core/nodes/v4l2_source_node",
     "$camera_path/adapter/platform/v4l2/src/pipeline_core/nodes/uvc_node",
-    "$board_camera_path/include/driver_adapter",
+    "$board_camera_path/driver_adapter/include",
     "//foundation/communication/ipc/ipc/native/src/core/include",
     "//commonlibrary/c_utils/base/include",
-    "src/node",
+    "src/nodes/soft_codec",
 
     # hcs parser
     "//system/core/include/cutils",
@@ -126,8 +127,9 @@ ohos_shared_library("camera_pipeline_core") {
   deps = [
     "$board_camera_path:config.c",
     "$board_camera_path:params.c",
+    "$board_camera_path/device_manager:camera_device_manager",
+    "$board_camera_path/metadata_manager:camera_metadata_manager",
     "$camera_path/buffer_manager:camera_buffer_manager",
-    "$camera_path/device_manager:camera_device_manager",
     "//drivers/interface/camera/v1_0:libcamera_stub_1.0",
     "//third_party/libjpeg-turbo:turbojpeg_static",
   ]
@@ -148,8 +150,8 @@ ohos_shared_library("camera_pipeline_core") {
 
   public_configs = [ ":pipe_config" ]
   install_images = [ chipset_base_dir ]
-  subsystem_name = "hdf"
-  part_name = "drivers_peripheral_camera"
+  subsystem_name = "osware_products"
+  part_name = "osware_products"
 }
 
 config("example_config") {
@@ -164,7 +166,7 @@ config("example_config") {
 
 ohos_shared_library("camera_ipp_algo_example") {
   sources = [
-    "$board_camera_path/src/pipeline_core/ipp_algo_example/ipp_algo_example.c",
+    "$board_camera_path/pipeline_core/src/ipp_algo_example/ipp_algo_example.c",
   ]
 
   include_dirs = [
@@ -174,6 +176,6 @@ ohos_shared_library("camera_ipp_algo_example") {
   external_deps = [ "c_utils:utils" ]
   public_configs = [ ":example_config" ]
   install_images = [ chipset_base_dir ]
-  subsystem_name = "hdf"
-  part_name = "drivers_peripheral_camera"
+  subsystem_name = "osware_products"
+  part_name = "osware_products"
 }

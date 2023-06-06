@@ -5,7 +5,12 @@
             "module_list": [
                 "//device/board/osware/imx8mm:imx8mm_group",
                 "//device/board/osware/imx8mm/drivers/bluetooth:libbt_vendor",
-                "//device/board/osware/imx8mm/drivers/bluetooth:BCM43438A1.hcd"
+                "//device/board/osware/imx8mm/drivers/bluetooth:BCM43438A1.hcd",
+                "//device/board/osware/imx8mm/drivers/camera:chipset_build",
+                "//device/board/osware/imx8mm/drivers/camera:camera_host_vdi_impl_1.0"
+            ],
+            "test_list": [
+                "//device/board/osware/imx8mm/drivers/camera:camera_board_test"
             ]
         }
     }
