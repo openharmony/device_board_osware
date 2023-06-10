@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import("//build/ohos.gni")
+import("//device/board/${product_company}/${device_name}/device.gni")
 import("//drivers/peripheral/camera/camera.gni")
 
 config("device_manager_config") {
@@ -47,8 +48,8 @@ config("device_manager_config") {
 
 ohos_shared_library("camera_device_manager") {
   sources = [
-    "$board_camera_path/src/device_manager/mx6s_csi.cpp",
-    "$board_camera_path/src/device_manager/sensor_controller.cpp",
+    "$board_camera_path/device_manager/src/mx6s_csi.cpp",
+    "$board_camera_path/device_manager/src/sensor_controller.cpp",
     "$camera_path/adapter/platform/v4l2/src/device_manager/enumerator_manager.cpp",
     "$camera_path/adapter/platform/v4l2/src/device_manager/flash_controller.cpp",
     "$camera_path/adapter/platform/v4l2/src/device_manager/flash_manager.cpp",
@@ -68,14 +69,14 @@ ohos_shared_library("camera_device_manager") {
     "$camera_path/utils/event",
     "$camera_path/device_manager/include",
     "include",
-    "$board_camera_path/include/device_manager",
-    "$board_camera_path/include/driver_adapter",
+    "$board_camera_path/device_manager/include",
+    "$board_camera_path/driver_adapter/include",
     "$camera_path/adapter/platform/v4l2/src/device_manager/include",
     "$camera_path/adapter/platform/v4l2/src/driver_adapter/include/",
     "//commonlibrary/c_utils/base/include",
   ]
 
-  deps = [ "$board_camera_path/src/driver_adapter:camera_v4l2_adapter" ]
+  deps = [ "$board_camera_path/driver_adapter:camera_v4l2_adapter" ]
 
   if (is_standard_system) {
     external_deps = [
@@ -93,6 +94,6 @@ ohos_shared_library("camera_device_manager") {
 
   public_configs = [ ":device_manager_config" ]
   install_images = [ chipset_base_dir ]
-  subsystem_name = "hdf"
-  part_name = "drivers_peripheral_camera"
+  subsystem_name = "osware_products"
+  part_name = "osware_products"
 }

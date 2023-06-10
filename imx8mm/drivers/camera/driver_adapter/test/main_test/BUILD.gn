@@ -1,4 +1,4 @@
-# Copyright (C) 2021–2022 Beijing OSWare Technology Co., Ltd
+# Copyright (C) 2021–2023 Beijing OSWare Technology Co., Ltd
 # This file contains confidential and proprietary information of
 # OSWare Technology Co., Ltd
 #
@@ -13,14 +13,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import("//build/test.gni")
+import("//build/ohos.gni")
+import("//device/board/${product_company}/${device_name}/device.gni")
 import("//drivers/hdf_core/adapter/uhdf2/uhdf.gni")
 import("//drivers/peripheral/camera/camera.gni")
 
-module_output_path = "hdf/v4l2_adapter_test"
-
-config("v4l2_utest_config") {
+config("v4l2_maintest") {
   visibility = [ ":*" ]
 
   cflags = [
@@ -49,40 +47,36 @@ config("v4l2_utest_config") {
   ]
 }
 
-ohos_unittest("v4l2_adapter_unittest") {
-  test_type = "unittest"
-  testonly = true
-  module_out_path = module_output_path
-  sources = [ "unittest/utest_v4l2_dev.cpp" ]
+ohos_executable("v4l2_main") {
+  install_enable = true
+  sources = [
+    "$board_camera_path/driver_adapter/src/imx8mm_image_buffer.cpp",
+    "$board_camera_path/driver_adapter/src/v4l2_buffer.cpp",
+    "$board_camera_path/driver_adapter/src/v4l2_dev.cpp",
+    "$board_camera_path/driver_adapter/src/v4l2_fileformat.cpp",
+    "$board_camera_path/driver_adapter/src/v4l2_stream.cpp",
+    "$camera_path/adapter/platform/v4l2/src/driver_adapter/src/v4l2_control.cpp",
+    "$camera_path/adapter/platform/v4l2/src/driver_adapter/src/v4l2_uvc.cpp",
+    "./v4l2_main.cpp",
+  ]
 
   include_dirs = [
+    "$board_camera_path/driver_adapter/main_test",
     "$camera_path/include",
-    "$camera_path/adapter/platform/v4l2/src/driver_adapter/include",
-    "$board_camera_path/src/driver_adapter/test/unittest/include",
-    "//third_party/googletest/googletest/include/gtest",
-    "//commonlibrary/c_utils/base/include",
+    "$board_camera_path/driver_adapter/include",
   ]
 
-  deps = [
-    "$camera_path/adapter/platform/v4l2/src/driver_adapter:camera_v4l2_adapter",
-    "//third_party/googletest:gmock_main",
-    "//third_party/googletest:gtest",
-    "//third_party/googletest:gtest_main",
+  deps = [ "$hdf_uhdf_path/utils:libhdf_utils" ]
+
+  external_deps = [
+    "c_utils:utils",
+    "hiviewdfx_hilog_native:libhilog",
   ]
+  defines += [ "V4L2_MAIN_TEST" ]
 
-  defines += [ "V4L2_UTEST" ]
-
-  if (is_standard_system) {
-    external_deps = [
-      "c_utils:utils",
-      "hiviewdfx_hilog_native:libhilog",
-    ]
-  } else {
-    external_deps = [
-      "c_utils:utils",
-      "hilog:libhilog",
-    ]
-  }
-
-  public_configs = [ ":v4l2_utest_config" ]
+  install_enable = true
+  public_configs = [ ":v4l2_maintest" ]
+  install_images = [ chipset_base_dir ]
+  subsystem_name = "osware_products"
+  part_name = "osware_products"
 }
