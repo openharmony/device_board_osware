@@ -215,7 +215,7 @@ ohos_shared_library("camera_host_vdi_impl_1.0") {
       "hdf_core:libhdf_ipc_adapter",
       "hdf_core:libhdf_utils",
       "hdf_core:libhdi",
-      "hiviewdfx_hilog_native:libhilog",
+      "hilog:libhilog",
       "ipc:ipc_single",
     ]
     if (use_hitrace) {
@@ -265,7 +265,7 @@ ohos_static_library("camera_host_vdi_impl_1.0_static") {
       "hdf_core:libhdf_utils",
       "hdf_core:libhdi",
       "hitrace:hitrace_meter",
-      "hiviewdfx_hilog_native:libhilog",
+      "hilog:libhilog",
       "ipc:ipc_single",
     ]
     if (use_hitrace) {

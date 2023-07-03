@@ -70,7 +70,7 @@ ohos_executable("v4l2_main") {
 
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
   ]
   defines += [ "V4L2_MAIN_TEST" ]
 
