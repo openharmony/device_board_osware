@@ -63,5 +63,7 @@ action("build_kernel") {
     product_path,
     device_name,
     linux_kernel_version,
+    build_variant,
+    device_type,
   ]
 }
